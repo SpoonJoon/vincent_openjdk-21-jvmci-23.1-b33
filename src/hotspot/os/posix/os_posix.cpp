@@ -1423,13 +1423,183 @@ void os::javaTimeNanos_info(jvmtiTimerInfo *info_ptr) {
 #endif // ! APPLE && !AIX
 
 //Joonhwan
-jlong os::dvfsTest(){
-  struct timespec ts;
-  int status = clock_gettime(CLOCK_REALTIME, &ts);
-  assert(status == 0, "clock_gettime error: %s", os::strerror(errno));
-  return jlong(ts.tv_sec) * MILLIUNITS +
-    jlong(ts.tv_nsec) / NANOUNITS_PER_MILLIUNIT;
+int os::get_pos_intnum(int num) {
+    if (num == 0) return 1;
+    int count = 0;
+    while (num > 0) {
+        num /= 10;
+        count++;
+    }
+    return count;
 }
+
+int os::check_write_gov(int cores, char** gov_files, const char* target) {
+    FILE** files = (FILE**)os::malloc(cores * sizeof(FILE*), mtInternal);
+    char** strings = (char**)os::malloc(cores * sizeof(char*), mtInternal);
+    
+    for (int i = 0; i < cores; i++) {
+        strings[i] = (char*)os::malloc(25, mtInternal);
+        
+        // Read current governor
+        files[i] = fopen(gov_files[i], "r");
+        if (files[i] == NULL) {
+            os::free(strings[i]);
+            os::free(strings);
+            os::free(files);
+            return 1;
+        }
+        
+        // Check fscanf return value
+        if (fscanf(files[i], "%s", strings[i]) != 1) {
+            fclose(files[i]);
+            os::free(strings[i]);
+            os::free(strings);
+            os::free(files);
+            return 1;
+        }
+        fclose(files[i]);
+        
+        if (strcmp(strings[i], target) != 0) {
+            files[i] = fopen(gov_files[i], "w");
+            if (files[i] == NULL) {
+                os::free(strings[i]);
+                os::free(strings);
+                os::free(files);
+                return 1;
+            }
+            
+            size_t data_length = strlen(target);
+            size_t data_written = fwrite(target, 1, data_length, files[i]);
+            
+            if (data_length != data_written) {
+                fclose(files[i]);
+                os::free(strings[i]);
+                os::free(strings);
+                os::free(files);
+                return 1;
+            }
+            
+            fclose(files[i]);
+        }
+        os::free(strings[i]);
+    }
+    
+    os::free(strings);
+    os::free(files);
+    return 0;
+}
+
+int os::write_freq_all_cores(int cores, char** freq_files, 
+                              const char* cur_freq, const char* scal_freq, int freq) {
+    FILE** files = (FILE**)os::malloc(cores * sizeof(FILE*), mtInternal);
+    int* cpu_freq = (int*)os::malloc(cores * sizeof(int), mtInternal);
+    int* scal_cpufreq = (int*)os::malloc(cores * sizeof(int), mtInternal);
+    
+    for (int i = 0; i < cores; i++) {
+        // Write new frequency
+        files[i] = fopen(freq_files[i], "w");
+        if (files[i] == NULL) {
+            os::free(cpu_freq);
+            os::free(scal_cpufreq);
+            os::free(files);
+            return 1;
+        }
+        
+        size_t data_length = get_pos_intnum(freq);
+        size_t data_written = fprintf(files[i], "%d", freq);
+        
+        if (data_length != data_written) {
+            fclose(files[i]);
+            os::free(cpu_freq);
+            os::free(scal_cpufreq);
+            os::free(files);
+            return 1;
+        }
+        fclose(files[i]);
+        
+        // Read current frequency
+        files[i] = fopen(cur_freq, "r");
+        if (files[i] == NULL) {
+            os::free(cpu_freq);
+            os::free(scal_cpufreq);
+            os::free(files);
+            return 1;
+        }
+        
+        // Check fscanf return value
+        if (fscanf(files[i], "%d", &cpu_freq[i]) != 1) {
+            fclose(files[i]);
+            os::free(cpu_freq);
+            os::free(scal_cpufreq);
+            os::free(files);
+            return 1;
+        }
+        fclose(files[i]);
+        
+        // Read scaling frequency
+        files[i] = fopen(scal_freq, "r");
+        if (files[i] == NULL) {
+            os::free(cpu_freq);
+            os::free(scal_cpufreq);
+            os::free(files);
+            return 1;
+        }
+        
+        // Check fscanf return value
+        if (fscanf(files[i], "%d", &scal_cpufreq[i]) != 1) {
+            fclose(files[i]);
+            os::free(cpu_freq);
+            os::free(scal_cpufreq);
+            os::free(files);
+            return 1;
+        }
+        fclose(files[i]);
+    }
+    
+    os::free(cpu_freq);
+    os::free(scal_cpufreq);
+    os::free(files);
+    return 0;
+}
+
+
+jlong os::dvfsTest() {
+    // Example usage of the above functions
+    int cores = sysconf(_SC_NPROCESSORS_ONLN);
+    
+    // Allocate and setup file paths
+    char** gov_files = (char**)os::malloc(cores * sizeof(char*), mtInternal);
+    char** freq_files = (char**)os::malloc(cores * sizeof(char*), mtInternal);
+    for (int i = 0; i < cores; i++) {
+        gov_files[i] = (char*)os::malloc(60, mtInternal);
+        freq_files[i] = (char*)os::malloc(60, mtInternal);
+        snprintf(gov_files[i], 60, "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_governor", i);
+        snprintf(freq_files[i], 60, "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_setspeed", i);
+    }
+    
+    // Example paths for current and scaling frequency
+    const char* cur_freq = "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_cur_freq";
+    const char* scal_freq = "/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq";
+    
+    // Set governor to userspace
+    int result = check_write_gov(cores, gov_files, "userspace");
+    if (result == 0) {
+        // Set frequency to 2GHz (2000000 KHz)
+        result = write_freq_all_cores(cores, freq_files, cur_freq, scal_freq, 2000000);
+    }
+    
+    // Cleanup
+    for (int i = 0; i < cores; i++) {
+        os::free(gov_files[i]);
+        os::free(freq_files[i]);
+    }
+    os::free(gov_files);
+    os::free(freq_files);
+    
+    return result;
+}
+
+
 
 // Time since start-up in seconds to a fine granularity.
 double os::elapsedTime() {
