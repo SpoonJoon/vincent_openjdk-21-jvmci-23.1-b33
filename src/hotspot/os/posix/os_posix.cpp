@@ -1562,52 +1562,41 @@ int os::write_freq_all_cores(int cores, char** freq_files,
     return 0;
 }
 
-
-// jlong os::dvfsTest() {
-//     // Example usage of the above functions
-//     int cores = sysconf(_SC_NPROCESSORS_ONLN);
-    
-//     // Allocate and setup file paths
-//     char** gov_files = (char**)os::malloc(cores * sizeof(char*), mtInternal);
-//     char** freq_files = (char**)os::malloc(cores * sizeof(char*), mtInternal);
-//     for (int i = 0; i < cores; i++) {
-//         gov_files[i] = (char*)os::malloc(60, mtInternal);
-//         freq_files[i] = (char*)os::malloc(60, mtInternal);
-//         snprintf(gov_files[i], 60, "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_governor", i);
-//         snprintf(freq_files[i], 60, "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_setspeed", i);
-//     }
-    
-//     // Example paths for current and scaling frequency
-//     const char* cur_freq = "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_cur_freq";
-//     const char* scal_freq = "/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq";
-    
-//     // Set governor to userspace
-//     int result = check_write_gov(cores, gov_files, "userspace");
-//     if (result == 0) {
-//         // Set frequency to 2GHz (2000000 KHz)
-//         result = write_freq_all_cores(cores, freq_files, cur_freq, scal_freq, 2000000);
-//     }
-    
-//     // Cleanup
-//     for (int i = 0; i < cores; i++) {
-//         os::free(gov_files[i]);
-//         os::free(freq_files[i]);
-//     }
-//     os::free(gov_files);
-//     os::free(freq_files);
-    
-//     return result;
-// }
-
-
 jlong os::dvfsTest() {
-  struct timespec ts;
-  int status = clock_gettime(CLOCK_REALTIME, &ts);
-  assert(status == 0, "clock_gettime error: %s", os::strerror(errno));
-  return jlong(ts.tv_sec) * MILLIUNITS +
-    jlong(ts.tv_nsec) / NANOUNITS_PER_MILLIUNIT;
+    // Example usage of the above functions
+    int cores = sysconf(_SC_NPROCESSORS_ONLN);
+    
+    // Allocate and setup file paths
+    char** gov_files = (char**)os::malloc(cores * sizeof(char*), mtInternal);
+    char** freq_files = (char**)os::malloc(cores * sizeof(char*), mtInternal);
+    for (int i = 0; i < cores; i++) {
+        gov_files[i] = (char*)os::malloc(60, mtInternal);
+        freq_files[i] = (char*)os::malloc(60, mtInternal);
+        snprintf(gov_files[i], 60, "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_governor", i);
+        snprintf(freq_files[i], 60, "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_setspeed", i);
+    }
+    
+    // Example paths for current and scaling frequency
+    const char* cur_freq = "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_cur_freq";
+    const char* scal_freq = "/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq";
+    
+    // Set governor to userspace
+    int result = check_write_gov(cores, gov_files, "userspace");
+    if (result == 0) {
+        // Set frequency to 2GHz (2000000 KHz)
+        result = write_freq_all_cores(cores, freq_files, cur_freq, scal_freq, 2000000);
+    }
+    
+    // Cleanup
+    for (int i = 0; i < cores; i++) {
+        os::free(gov_files[i]);
+        os::free(freq_files[i]);
+    }
+    os::free(gov_files);
+    os::free(freq_files);
+    
+    return result;
 }
-
 
 // Time since start-up in seconds to a fine granularity.
 double os::elapsedTime() {
