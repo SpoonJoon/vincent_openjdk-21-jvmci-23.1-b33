@@ -21,19 +21,20 @@ COPY . /openjdk-21/
 WORKDIR /openjdk-21
 
 # Set JAVA_HOME
-ENV JAVA_HOME=/usr/lib/jvm/java-20-openjdk-arm64
-ENV PATH=$JAVA_HOME/bin:$PATH
+#ENV JAVA_HOME=/usr/lib/jvm/java-20-openjdk-arm64
+#ENV PATH=$JAVA_HOME/bin:$PATH
 
 # you may need to run make images multiple times. the compilation server crashes for unknown reasons
-RUN bash configure --with-boot-jdk=$JAVA_HOME && \
-    make images
+#RUN bash configure --with-boot-jdk=$JAVA_HOME && \
+#    make images
 
 # Set the newly built JDK as the default Java
-ENV JAVA_HOME=/openjdk-21/build/*/images/jdk
+
+#ENV JAVA_HOME=/openjdk-21/build/*/images/jdk
 
 # Modify PATH in a single RUN command instead
-RUN NEW_PATH=$(echo $PATH | tr ':' '\n' | grep -v '/usr/bin' | tr '\n' ':') && \
-    echo "PATH=$JAVA_HOME/bin:$NEW_PATH" >> /etc/environment
+#RUN NEW_PATH=$(echo $PATH | tr ':' '\n' | grep -v '/usr/bin' | tr '\n' ':') && \
+#    echo "PATH=$JAVA_HOME/bin:$NEW_PATH" >> /etc/environment
 
 RUN java -version
 
