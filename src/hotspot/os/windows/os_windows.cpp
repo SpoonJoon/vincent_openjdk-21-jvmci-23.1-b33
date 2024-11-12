@@ -1123,7 +1123,23 @@ jlong os::dvfsTest() {
   GetSystemTimeAsFileTime(&wt);
   return windows_to_java_time(wt);
 }
-
+//Joonhwan Stubs so we can build
+int os::check_write_gov(int cores, char** gov_files, const char* target) {
+    return 0;
+}
+int os::write_freq_all_cores(int cores, char** freq_files, 
+                              const char* cur_freq, const char* scal_freq, int freq) { 
+    return 0; 
+}
+int os::get_pos_intnum(int num) {
+    if (num == 0) return 1;
+    int count = 0;
+    while (num > 0) {
+        num /= 10;
+        count++;
+    }
+    return count;
+}
 
 char* os::local_time_string(char *buf, size_t buflen) {
   SYSTEMTIME st;

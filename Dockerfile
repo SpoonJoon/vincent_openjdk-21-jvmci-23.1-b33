@@ -15,6 +15,14 @@ RUN apt-get update && apt-get install -y \
   autoconf \
   file
 
+#Dependencies for GraalVM 
+#TODO: remove vim later
+RUN apt-get update && apt-get install -y \
+  curl \
+  zlib1g-dev \
+  wget \
+  vim 
+
 COPY . /openjdk-21/
 
 # Set working directory
@@ -29,14 +37,20 @@ RUN bash configure --with-boot-jdk=$JAVA_HOME && \
     make images
 
 # Set the newly built JDK as the default Java
-ENV JAVA_HOME=/openjdk-21/build/*/images/jdk
-
-# Modify PATH in a single RUN command instead
-RUN NEW_PATH=$(echo $PATH | tr ':' '\n' | grep -v '/usr/bin' | tr '\n' ':') && \
-    echo "PATH=$JAVA_HOME/bin:$NEW_PATH" >> /etc/environment
+# TODO make the path generic
+ENV JAVA_HOME=/openjdk-21/build/linux-x86_64-server-release/images/jdk
+ENV PATH=$JAVA_HOME/bin:$PATH
 
 RUN java -version
 
 #TODO add graal
+RUN mkdir /workspace
+# Setup MX to build graal compiler
+ENV MX_PATH=/workspace/mx
+RUN git clone https://github.com/graalvm/mx.git ${MX_PATH} && chmod +x ${MX_PATH}/mx 
+ENV PATH="/workspace/mx:$PATH"
+
+RUN cd /workspace 
+RUN git clone
 
 CMD ["bash"]

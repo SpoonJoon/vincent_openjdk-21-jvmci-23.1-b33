@@ -261,6 +261,10 @@ class os: AllStatic {
 
   //Joonhwan
   static jlong  dvfsTest();
+  static int check_write_gov(int cores, char** gov_files, const char* target);
+  static int write_freq_all_cores(int cores, char** freq_files, 
+                                const char* cur_freq, const char* scal_freq, int freq);
+  static int get_pos_intnum(int num);
 
   // Returns the elapsed time in seconds since the vm started.
   static double elapsedTime();
