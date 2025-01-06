@@ -1117,11 +1117,14 @@ void os::javaTimeNanos_info(jvmtiTimerInfo *info_ptr) {
 
   info_ptr->kind = JVMTI_TIMER_ELAPSED;                // elapsed not CPU time
 }
-//Joonhwan
+
+// TODO: Joonhwan support for diff os currently a stub implementation 
 jlong os::dvfsTest() {
-  FILETIME wt;
-  GetSystemTimeAsFileTime(&wt);
-  return windows_to_java_time(wt);
+    return 0;
+}
+
+jlong os::scaleCpuFreq(jlong freq) {
+    return 0;
 }
 //Joonhwan Stubs so we can build
 int os::check_write_gov(int cores, char** gov_files, const char* target) {

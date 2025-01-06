@@ -1492,6 +1492,115 @@ jlong os::dvfsTest() {
     return current_freq;
 }
 
+jlong scaleCpuFreq(jlong freq) {
+#ifdef __linux__
+    int current_cpu = sched_getcpu();
+    if (current_cpu < 0) {
+        perror("CANNOT GET CURRENT CPU");
+        return -1;
+    }
+
+    char gov_file[128];
+    char freq_file[128];
+    char cur_freq_file[128];
+
+    snprintf(gov_file, sizeof(gov_file),
+             "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_governor", current_cpu);
+    snprintf(freq_file, sizeof(freq_file),
+             "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_setspeed", current_cpu);
+    snprintf(cur_freq_file, sizeof(cur_freq_file),
+             "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_cur_freq", current_cpu);
+
+    // ----------------------------------------------------------
+    // 1) Read the OLD/current frequency (via low-level syscalls)
+    // ----------------------------------------------------------
+    int fd = open(cur_freq_file, O_RDONLY);
+    if (fd < 0) {
+        report_error("Failed to open current frequency file");
+        return -1;
+    }
+
+    char buf[64];
+    ssize_t len = read(fd, buf, sizeof(buf) - 1);  // leave space for null terminator
+    close(fd);
+    if (len < 0) {
+        report_error("Failed to read current frequency file");
+        return -1;
+    }
+    buf[len] = '\0';  // ensure null-terminated
+    long old_freq = atoll(buf);  // convert to long
+
+    // ----------------------------------------------------------
+    // 2) Check if governor is already "userspace"; set if not
+    // ----------------------------------------------------------
+    fd = open(gov_file, O_RDWR);
+    if (fd < 0) {
+        report_error("Failed to open governor file");
+        return -1;
+    }
+
+    // Read current governor
+    char gov_buf[32];
+    len = read(fd, gov_buf, sizeof(gov_buf) - 1);
+    if (len < 0) {
+        // If read fails, we won't close yet but let's handle
+        close(fd);
+        report_error("Failed to read governor file");
+        return -1;
+    }
+    gov_buf[len] = '\0';
+
+    // Only write "userspace" if it's not already set
+    if (strstr(gov_buf, "userspace") == NULL) {
+        // Move file pointer back to start (or O_TRUNC + O_WRONLY)
+        if (lseek(fd, 0, SEEK_SET) < 0) {
+            close(fd);
+            report_error("Failed to lseek governor file");
+            return -1;
+        }
+
+        // Truncate the file to 0 length before writing
+        if (ftruncate(fd, 0) < 0) {
+            close(fd);
+            report_error("Failed to truncate governor file");
+            return -1;
+        }
+
+        // Write "userspace"
+        if (write(fd, "userspace", 9) != 9) {
+            close(fd);
+            report_error("Failed to write to governor file");
+            return -1;
+        }
+    }
+    close(fd);
+
+    if (freq != old_freq) {
+        fd = open(freq_file, O_WRONLY);
+        if (fd < 0) {
+            report_error("Failed to open frequency file");
+            return -1;
+        }
+
+        // Convert freq to string
+        char freq_str[64];
+        snprintf(freq_str, sizeof(freq_str), "%ld", freq);
+
+        if (write(fd, freq_str, strlen(freq_str)) < 0) {
+            close(fd);
+            report_error("Failed to write to frequency file");
+            return -1;
+        }
+        close(fd);
+    }
+
+    return old_freq;
+#else
+    // Not Linux
+    return -1;
+#endif
+}
+
 // Time since start-up in seconds to a fine granularity.
 double os::elapsedTime() {
   return ((double)os::elapsed_counter()) / os::elapsed_frequency(); // nanosecond resolution
