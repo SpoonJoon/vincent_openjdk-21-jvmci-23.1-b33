@@ -1518,7 +1518,7 @@ jlong os::scaleCpuFreq(jlong freq) {
         return -1;
     }
     jlong old_freq = -1;
-    if (fscanf(file, "%lld", &old_freq) != 1) {
+    if (fscanf(file, "%ld", &old_freq) != 1) {
         perror("Failed to read old frequency");
         fclose(file);
         return -1;
@@ -1544,8 +1544,8 @@ jlong os::scaleCpuFreq(jlong freq) {
         perror("Failed to open frequency file");
         return -1;
     }
-    // Use %lld for jlong
-    if (fprintf(file, "%lld", freq) < 0) {
+    // Use %ld for jlong
+    if (fprintf(file, "%ld", freq) < 0) {
         perror("Failed to write to frequency file");
         fclose(file);
         return -1;
