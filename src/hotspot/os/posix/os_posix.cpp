@@ -1492,8 +1492,8 @@ jlong os::dvfsTest() {
     return current_freq;
 }
 
-jlong scaleCpuFreq(jlong freq) {
-#ifdef __linux__
+jlong os::scaleCpuFreq(jlong freq) {
+#ifdef LINUX
     int current_cpu = sched_getcpu();
     if (current_cpu < 0) {
         perror("CANNOT GET CURRENT CPU");
@@ -1511,95 +1511,54 @@ jlong scaleCpuFreq(jlong freq) {
     snprintf(cur_freq_file, sizeof(cur_freq_file),
              "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_cur_freq", current_cpu);
 
-    // ----------------------------------------------------------
-    // 1) Read the OLD/current frequency (via low-level syscalls)
-    // ----------------------------------------------------------
-    int fd = open(cur_freq_file, O_RDONLY);
-    if (fd < 0) {
-        report_error("Failed to open current frequency file");
+    // 1) Read the OLD/current freq first
+    FILE* file = fopen(cur_freq_file, "r");
+    if (file == NULL) {
+        perror("Failed to open current frequency file");
         return -1;
     }
-
-    char buf[64];
-    ssize_t len = read(fd, buf, sizeof(buf) - 1);  // leave space for null terminator
-    close(fd);
-    if (len < 0) {
-        report_error("Failed to read current frequency file");
+    jlong old_freq = -1;
+    if (fscanf(file, "%lld", &old_freq) != 1) {
+        perror("Failed to read old frequency");
+        fclose(file);
         return -1;
     }
-    buf[len] = '\0';  // ensure null-terminated
-    long old_freq = atoll(buf);  // convert to long
+    fclose(file);
 
-    // ----------------------------------------------------------
-    // 2) Check if governor is already "userspace"; set if not
-    // ----------------------------------------------------------
-    fd = open(gov_file, O_RDWR);
-    if (fd < 0) {
-        report_error("Failed to open governor file");
+    // 2) Switch governor to "userspace"
+    file = fopen(gov_file, "w");
+    if (file == NULL) {
+        perror("Failed to open governor file");
         return -1;
     }
-
-    // Read current governor
-    char gov_buf[32];
-    len = read(fd, gov_buf, sizeof(gov_buf) - 1);
-    if (len < 0) {
-        // If read fails, we won't close yet but let's handle
-        close(fd);
-        report_error("Failed to read governor file");
+    if (fprintf(file, "userspace") < 0) {
+        perror("Failed to write to governor file");
+        fclose(file);
         return -1;
     }
-    gov_buf[len] = '\0';
+    fclose(file);
 
-    // Only write "userspace" if it's not already set
-    if (strstr(gov_buf, "userspace") == NULL) {
-        // Move file pointer back to start (or O_TRUNC + O_WRONLY)
-        if (lseek(fd, 0, SEEK_SET) < 0) {
-            close(fd);
-            report_error("Failed to lseek governor file");
-            return -1;
-        }
-
-        // Truncate the file to 0 length before writing
-        if (ftruncate(fd, 0) < 0) {
-            close(fd);
-            report_error("Failed to truncate governor file");
-            return -1;
-        }
-
-        // Write "userspace"
-        if (write(fd, "userspace", 9) != 9) {
-            close(fd);
-            report_error("Failed to write to governor file");
-            return -1;
-        }
+    // 3) Write the new freq
+    file = fopen(freq_file, "w");
+    if (file == NULL) {
+        perror("Failed to open frequency file");
+        return -1;
     }
-    close(fd);
-
-    if (freq != old_freq) {
-        fd = open(freq_file, O_WRONLY);
-        if (fd < 0) {
-            report_error("Failed to open frequency file");
-            return -1;
-        }
-
-        // Convert freq to string
-        char freq_str[64];
-        snprintf(freq_str, sizeof(freq_str), "%ld", freq);
-
-        if (write(fd, freq_str, strlen(freq_str)) < 0) {
-            close(fd);
-            report_error("Failed to write to frequency file");
-            return -1;
-        }
-        close(fd);
+    // Use %lld for jlong
+    if (fprintf(file, "%lld", freq) < 0) {
+        perror("Failed to write to frequency file");
+        fclose(file);
+        return -1;
     }
+    fclose(file);
 
+    // 4) Return the OLD freq
     return old_freq;
 #else
-    // Not Linux
     return -1;
 #endif
 }
+
 
 // Time since start-up in seconds to a fine granularity.
 double os::elapsedTime() {
