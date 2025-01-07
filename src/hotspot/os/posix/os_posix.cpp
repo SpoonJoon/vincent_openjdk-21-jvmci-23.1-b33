@@ -1491,6 +1491,7 @@ jlong os::dvfsTest() {
     // Return the current frequency
     return current_freq;
 }
+
 jlong os::scaleCpuFreq(jlong freq) {
 #ifdef LINUX
     int current_cpu = sched_getcpu();
@@ -1498,7 +1499,6 @@ jlong os::scaleCpuFreq(jlong freq) {
         perror("CANNOT GET CURRENT CPU");
         return -1;
     }
-    printf("Current CPU: %d\n", current_cpu);
 
     char gov_file[128];
     char freq_file[128];
@@ -1523,12 +1523,6 @@ jlong os::scaleCpuFreq(jlong freq) {
         return -1;
     }
     fclose(file);
-    printf("Old frequency: %ld KHz\n", old_freq);
-
-    // Convert from Hz to KHz
-    jlong freq_khz = freq / 1000;
-    printf("Setting frequency: %ld Hz (%ld KHz)\n", freq, freq_khz);
-
     file = fopen(gov_file, "w");
     if (file == NULL) {
         perror("Failed to open governor file");
@@ -1540,7 +1534,6 @@ jlong os::scaleCpuFreq(jlong freq) {
         return -1;
     }
     fclose(file);
-    printf("Governor switched to userspace\n");
 
     file = fopen(freq_file, "w");
     if (file == NULL) {
@@ -1553,16 +1546,6 @@ jlong os::scaleCpuFreq(jlong freq) {
         return -1;
     }
     fclose(file);
-
-    // Verify the frequency was set
-    file = fopen(cur_freq_file, "r");
-    if (file != NULL) {
-        jlong new_freq;
-        if (fscanf(file, "%ld", &new_freq) == 1) {
-            printf("Frequency verified: %ld KHz\n", new_freq);
-        }
-        fclose(file);
-    }
 
     return old_freq;
 #else
