@@ -1493,7 +1493,7 @@ jlong os::dvfsTest() {
 }
 
 
-int os::_dvfs_count = 0;
+int os::dvfs_count = 0;
 
 jlong os::scaleCpuFreq(jlong freq) {
 #ifdef LINUX
@@ -1549,7 +1549,7 @@ jlong os::scaleCpuFreq(jlong freq) {
         return -1;
     }
     fclose(file);
-    _dvfs_count++;
+    dvfs_count++;
     printf("DVFS operation count: %d\n", _dvfs_count);
     return old_freq;
 #else
