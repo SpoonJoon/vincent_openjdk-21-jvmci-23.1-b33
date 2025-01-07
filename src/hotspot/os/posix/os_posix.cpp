@@ -1540,7 +1540,7 @@ jlong os::scaleCpuFreq(jlong freq) {
         perror("Failed to open frequency file");
         return -1;
     }
-    if (fprintf(file, "%ld", freq_khz) < 0) {
+    if (fprintf(file, "%ld", freq) < 0) {
         perror("Failed to write to frequency file");
         fclose(file);
         return -1;
