@@ -1525,6 +1525,10 @@ jlong os::scaleCpuFreq(jlong freq) {
     fclose(file);
     printf("Old frequency: %ld KHz\n", old_freq);
 
+    // Convert from Hz to KHz
+    jlong freq_khz = freq / 1000;
+    printf("Setting frequency: %ld Hz (%ld KHz)\n", freq, freq_khz);
+
     file = fopen(gov_file, "w");
     if (file == NULL) {
         perror("Failed to open governor file");
@@ -1543,20 +1547,28 @@ jlong os::scaleCpuFreq(jlong freq) {
         perror("Failed to open frequency file");
         return -1;
     }
-    if (fprintf(file, "%ld", freq) < 0) {
+    if (fprintf(file, "%ld", freq_khz) < 0) {
         perror("Failed to write to frequency file");
         fclose(file);
         return -1;
     }
     fclose(file);
-    printf("New frequency set to: %ld KHz\n", freq);
+
+    // Verify the frequency was set
+    file = fopen(cur_freq_file, "r");
+    if (file != NULL) {
+        jlong new_freq;
+        if (fscanf(file, "%ld", &new_freq) == 1) {
+            printf("Frequency verified: %ld KHz\n", new_freq);
+        }
+        fclose(file);
+    }
 
     return old_freq;
 #else
     return -1;
 #endif
 }
-
 
 // Time since start-up in seconds to a fine granularity.
 double os::elapsedTime() {
