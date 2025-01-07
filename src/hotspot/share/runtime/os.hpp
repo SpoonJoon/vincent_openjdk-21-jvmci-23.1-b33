@@ -267,6 +267,8 @@ class os: AllStatic {
                                 const char* cur_freq, const char* scal_freq, int freq);
   static int get_pos_intnum(int num);
 
+  static int dvfsCount;
+
   // Returns the elapsed time in seconds since the vm started.
   static double elapsedTime();
 
