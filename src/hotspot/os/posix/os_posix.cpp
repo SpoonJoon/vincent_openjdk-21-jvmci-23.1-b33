@@ -1582,7 +1582,6 @@ void os::restoreGovernor() {
     }
 
     fclose(file);
-    printf("Restored governor to ondemand for CPU %d\n", current_cpu);
 #endif
 }
 
