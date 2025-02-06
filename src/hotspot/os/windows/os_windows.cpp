@@ -1126,6 +1126,11 @@ jlong os::dvfsTest() {
 jlong os::scaleCpuFreq(jlong freq) {
     return 0;
 }
+
+void os::restoreGovernor() {
+    return 0;
+}
+
 //Joonhwan Stubs so we can build
 int os::check_write_gov(int cores, char** gov_files, const char* target) {
     return 0;

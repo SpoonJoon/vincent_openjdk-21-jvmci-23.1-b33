@@ -775,6 +775,7 @@
   declare_function(os::javaTimeNanos)                                     \
   declare_function(os::dvfsTest)                                          \
   declare_function(os::scaleCpuFreq)                                      \
+  declare_function(os::restoreGovernor)                                   \
                                                                           \
   declare_function(Deoptimization::fetch_unroll_info)                     \
   declare_function(Deoptimization::uncommon_trap)                         \

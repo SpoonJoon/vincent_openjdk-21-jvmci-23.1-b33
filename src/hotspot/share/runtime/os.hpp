@@ -262,6 +262,8 @@ class os: AllStatic {
   //Joonhwan
   static jlong  dvfsTest();
   static jlong  scaleCpuFreq(jlong scale_freq);
+  //TODO parametrize CPU to restore the correct governor
+  static void  restoreGovernor();
   static int check_write_gov(int cores, char** gov_files, const char* target);
   static int write_freq_all_cores(int cores, char** freq_files, 
                                 const char* cur_freq, const char* scal_freq, int freq);

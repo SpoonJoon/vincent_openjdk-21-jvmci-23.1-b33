@@ -1493,7 +1493,7 @@ jlong os::dvfsTest() {
 }
 
 
-int os::dvfs_count = 0;
+// int os::dvfs_count = 0;
 
 jlong os::scaleCpuFreq(jlong freq) {
 #ifdef LINUX
@@ -1549,11 +1549,40 @@ jlong os::scaleCpuFreq(jlong freq) {
         return -1;
     }
     fclose(file);
-    dvfs_count++;
-    printf("DVFS count: %d\n", dvfs_count);
+    // dvfs_count++;
+    // printf("DVFS count: %d\n", dvfs_count);
     return old_freq;
 #else
     return -1;
+#endif
+}
+
+void os::restoreGovernor() {
+#ifdef LINUX
+    int current_cpu = sched_getcpu();
+    if (current_cpu < 0) {
+        perror("CANNOT GET CURRENT CPU");
+        return;
+    }
+
+    char gov_file[128];
+    snprintf(gov_file, sizeof(gov_file),
+             "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_governor", current_cpu);
+
+    FILE* file = fopen(gov_file, "w");
+    if (file == NULL) {
+        perror("Failed to open governor file");
+        return;
+    }
+
+    if (fprintf(file, "ondemand") < 0) {
+        perror("Failed to write to governor file");
+        fclose(file);
+        return;
+    }
+
+    fclose(file);
+    printf("Restored governor to ondemand for CPU %d\n", current_cpu);
 #endif
 }
 
@@ -1567,7 +1596,7 @@ jlong os::elapsed_counter() {
 }
 
 jlong os::elapsed_frequency() {
-  return NANOSECS_PER_SEC; // nanosecond resolution
+  return NANOSECS_PER_SEC; // nanosecond resolution-
 }
 
 bool os::supports_vtime() { return true; }
