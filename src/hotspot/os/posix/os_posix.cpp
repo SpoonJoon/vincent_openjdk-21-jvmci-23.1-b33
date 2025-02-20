@@ -1549,6 +1549,8 @@ jlong os::scaleCpuFreq(jlong freq) {
         return -1;
     }
     fclose(file);
+    dvfs_count++;
+    printf("dvfs_count: %d\n", dvfs_count);
     return old_freq;
 #else
     return -1;
