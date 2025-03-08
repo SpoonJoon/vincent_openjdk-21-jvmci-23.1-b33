@@ -260,6 +260,8 @@ class os: AllStatic {
   static void   run_periodic_checks(outputStream* st);
 
   //Joonhwan
+  static void init_sysfs_files();
+  static void cleanup_sysfs_files();
   static jlong  dvfsTest();
   static jlong  scaleCpuFreq(jlong scale_freq);
   //TODO parametrize CPU to restore the correct governor

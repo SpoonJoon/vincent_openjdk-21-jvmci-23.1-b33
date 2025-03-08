@@ -76,6 +76,14 @@
 #include <unistd.h>
 #include <utmpx.h>
 
+//joonhwan imports
+
+#include <stdio.h>
+#include <sched.h>
+#include <stdlib.h>
+#include <sys/sysinfo.h>  
+
+
 #ifdef __APPLE__
   #include <crt_externs.h>
 #endif
@@ -1492,96 +1500,107 @@ jlong os::dvfsTest() {
     return current_freq;
 }
 
+// Global pointers to hold file handles per core
+FILE** gov_files;
+FILE** freq_files;
+int num_cores;
 
-int os::dvfs_count = 0;
+void os::init_sysfs_files() {
+#ifdef LINUX
+    num_cores = get_nprocs();  // get the number of cores dynamically
+    gov_files = (FILE**)malloc(num_cores * sizeof(FILE*));
+    freq_files = (FILE**)malloc(num_cores * sizeof(FILE*));
+
+    for (int i = 0; i < num_cores; i++) {
+        char filename[128];
+
+        // Open governor file for each CPU core.
+        sprintf(filename, "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_governor", i);
+        gov_files[i] = fopen(filename, "w");
+        if (!gov_files[i]) {
+            perror("Failed to open governor file");
+            // Handle error as appropriate...
+        }
+
+        // Open frequency file for each CPU core.
+        sprintf(filename, "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_setspeed", i);
+        freq_files[i] = fopen(filename, "w");
+        if (!freq_files[i]) {
+            perror("Failed to open frequency file");
+            // Handle error as appropriate...
+        }
+    }
+#endif
+}
+
+void os::cleanup_sysfs_files() {
+#ifdef LINUX
+    for (int i = 0; i < num_cores; i++) {
+        if (gov_files[i]) {
+            fclose(gov_files[i]);
+        }
+        if (freq_files[i]) {
+            fclose(freq_files[i]);
+        }
+    }
+    free(gov_files);
+    free(freq_files);
+#endif
+}
+
+int os::dvfs_count=0;
 
 jlong os::scaleCpuFreq(jlong freq) {
 #ifdef LINUX
     int current_cpu = sched_getcpu();
-    if (current_cpu < 0) {
-        perror("CANNOT GET CURRENT CPU");
+    if (current_cpu < 0 || current_cpu >= MAX_CPUS) {
+        perror("Invalid CPU id");
+        return -1;
+    }
+    
+    //init above
+    FILE* gov_file = gov_files[current_cpu];
+    FILE* freq_file = freq_files[current_cpu];
+    if (!gov_file || !freq_file) {
+        perror("File not open");
         return -1;
     }
 
-    char gov_file[128];
-    char freq_file[128];
-    char cur_freq_file[128];
+    // write userspace to set cpu freq
+    fseek(gov_file, 0, SEEK_SET);
+    fprintf(gov_file, "userspace");
+    fflush(gov_file);
 
-    snprintf(gov_file, sizeof(gov_file),
-             "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_governor", current_cpu);
-    snprintf(freq_file, sizeof(freq_file),
-             "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_setspeed", current_cpu);
-    snprintf(cur_freq_file, sizeof(cur_freq_file),
-             "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_cur_freq", current_cpu);
+    fseek(freq_file, 0, SEEK_SET);
+    fprintf(freq_file, "%ld", freq);
+    fflush(freq_file);
 
-    FILE* file = fopen(cur_freq_file, "r");
-    if (file == NULL) {
-        perror("Failed to open current frequency file");
-        return -1;
-    }
-    jlong old_freq = -1;
-    if (fscanf(file, "%ld", &old_freq) != 1) {
-        perror("Failed to read old frequency");
-        fclose(file);
-        return -1;
-    }
-    fclose(file);
-    file = fopen(gov_file, "w");
-    if (file == NULL) {
-        perror("Failed to open governor file");
-        return -1;
-    }
-    if (fprintf(file, "userspace") < 0) {
-        perror("Failed to write to governor file");
-        fclose(file);
-        return -1;
-    }
-    fclose(file);
-
-    file = fopen(freq_file, "w");
-    if (file == NULL) {
-        perror("Failed to open frequency file");
-        return -1;
-    }
-    if (fprintf(file, "%ld", freq) < 0) {
-        perror("Failed to write to frequency file");
-        fclose(file);
-        return -1;
-    }
-    fclose(file);
     dvfs_count++;
     printf("dvfs_count: %d\n", dvfs_count);
-    return old_freq;
+    return freq;  // Returning the new frequency (adjust as needed)
 #else
     return -1;
 #endif
 }
 
+//TODO parametrize for different governors
 void os::restoreGovernor() {
 #ifdef LINUX
     int current_cpu = sched_getcpu();
-    if (current_cpu < 0) {
-        perror("CANNOT GET CURRENT CPU");
+    if (current_cpu < 0 || current_cpu >= MAX_CPUS) {
+        perror("Invalid CPU id");
+        return;
+    }
+    
+    FILE* gov_file = gov_files[current_cpu];
+    if (!gov_file) {
+        perror("Governor file not open");
         return;
     }
 
-    char gov_file[128];
-    snprintf(gov_file, sizeof(gov_file),
-             "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_governor", current_cpu);
-
-    FILE* file = fopen(gov_file, "w");
-    if (file == NULL) {
-        perror("Failed to open governor file");
-        return;
-    }
-
-    if (fprintf(file, "ondemand") < 0) {
-        perror("Failed to write to governor file");
-        fclose(file);
-        return;
-    }
-
-    fclose(file);
+    fseek(gov_file, 0, SEEK_SET);
+    fprintf(gov_file, "ondemand");
+    fflush(gov_file);
 #endif
 }
 
