@@ -1508,8 +1508,8 @@ int num_cores;
 void os::init_sysfs_files() {
 #ifdef LINUX
     num_cores = get_nprocs();  // get the number of cores dynamically
-    gov_files = (FILE**)::malloc(num_cores * sizeof(FILE*));
-    freq_files = (FILE**)::malloc(num_cores * sizeof(FILE*));
+    gov_files = (FILE**)os::malloc(num_cores * sizeof(FILE*), mtInternal);
+    freq_files = (FILE**)os::malloc(num_cores * sizeof(FILE*), mtInternal);
 
     for (int i = 0; i < num_cores; i++) {
         char filename[128];
