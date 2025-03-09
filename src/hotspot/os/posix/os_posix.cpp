@@ -1553,7 +1553,7 @@ int os::dvfs_count=0;
 jlong os::scaleCpuFreq(jlong freq) {
 #ifdef LINUX
     int current_cpu = sched_getcpu();
-    if (current_cpu < 0 || current_cpu >= MAX_CPUS) {
+    if (current_cpu < 0) {
         perror("Invalid CPU id");
         return -1;
     }
@@ -1587,7 +1587,7 @@ jlong os::scaleCpuFreq(jlong freq) {
 void os::restoreGovernor() {
 #ifdef LINUX
     int current_cpu = sched_getcpu();
-    if (current_cpu < 0 || current_cpu >= MAX_CPUS) {
+    if (current_cpu < 0) {
         perror("Invalid CPU id");
         return;
     }
