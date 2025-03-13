@@ -1600,7 +1600,7 @@ jlong os::scaleCpuFreq(jlong freq) {
 
     dvfs_count++;
     double elapsed_time = os::elapsedTime(); // Time since JVM startup in seconds
-    printf("[DVFS] Time: %.3f sec, CPU: %d, Count: %d, Frequency: %ld kHz\n", 
+    printf("[DVFS] Time: %.6f sec, CPU: %d, Count: %d, Frequency: %ld kHz\n", 
            elapsed_time, current_cpu, dvfs_count, freq);
     return freq;  // Returning the new frequency (adjust as needed)
 #else
@@ -1624,7 +1624,7 @@ void os::restoreGovernor() {
     }
     cpu_in_userspace[current_cpu] = false; // Move this inside the lock too
     pthread_mutex_unlock(&cpu_state_mutex);
-    
+
     FILE* gov_file = gov_files[current_cpu];
     if (!gov_file) {
         perror("Governor file not open");
@@ -1637,7 +1637,7 @@ void os::restoreGovernor() {
 
 
     double elapsed_time = os::elapsedTime();
-    printf("[DVFS] Time: %.3f sec, CPU: %d, Restored to ondemand\n", 
+    printf("[DVFS] Time: %.6f sec, CPU: %d, Restored to ondemand\n", 
            elapsed_time, current_cpu);
 
 #endif
