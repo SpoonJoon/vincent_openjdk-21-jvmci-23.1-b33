@@ -1595,10 +1595,10 @@ jlong os::scaleCpuFreq(jlong freq) {
       fseek(freq_file, 0, SEEK_SET);
       fprintf(freq_file, "%ld", freq);
       fflush(freq_file);
+
+      dvfs_count++;
     }
 
-
-    dvfs_count++;
     double elapsed_time = os::elapsedTime(); // Time since JVM startup in seconds
     printf("[DVFS] Time: %.6f sec, CPU: %d, Count: %d, Frequency: %ld kHz\n", 
            elapsed_time, current_cpu, dvfs_count, freq);
