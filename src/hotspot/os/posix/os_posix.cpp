@@ -1553,10 +1553,6 @@ int os::dvfs_count=0;
 jlong os::scaleCpuFreq(jlong freq) {
 #ifdef LINUX
 
-    if(dvfs_count==0){
-      init_sysfs_files();
-    }
-
     int current_cpu = sched_getcpu();
     if (current_cpu < 0) {
         perror("Invalid CPU id");
