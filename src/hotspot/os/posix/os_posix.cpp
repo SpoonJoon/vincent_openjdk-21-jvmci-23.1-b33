@@ -2173,6 +2173,9 @@ bool os::message_box(const char* title, const char* message) {
 // sure it is async-safe and can handle partially initialized VM.
 void os::shutdown() {
 
+  //JOONHWAN 
+  cleanup_sysfs_files();
+
   // allow PerfMemory to attempt cleanup of any persistent resources
   perfMemory_exit();
 

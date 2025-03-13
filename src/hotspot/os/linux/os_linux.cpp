@@ -4444,7 +4444,11 @@ void os::init(void) {
 
   check_pax();
 
+  //Joonhwan
+  init_sysfs_files();
+
   os::Posix::init();
+
 }
 
 // To install functions for atexit system call
