@@ -1611,34 +1611,34 @@ jlong os::scaleCpuFreq(jlong freq) {
 //TODO parametrize for different governors
 void os::restoreGovernor() {
 #ifdef LINUX
-    // int current_cpu = sched_getcpu();
-    // if (current_cpu < 0) {
-    //     perror("Invalid CPU id");
-    //     return;
-    // }
+    int current_cpu = sched_getcpu();
+    if (current_cpu < 0) {
+        perror("Invalid CPU id");
+        return;
+    }
 
-    // pthread_mutex_lock(&cpu_state_mutex);
-    // if (!cpu_in_userspace[current_cpu]) {
-    //     pthread_mutex_unlock(&cpu_state_mutex);
-    //     return;
-    // }
-    // cpu_in_userspace[current_cpu] = false; // Move this inside the lock too
-    // pthread_mutex_unlock(&cpu_state_mutex);
+    pthread_mutex_lock(&cpu_state_mutex);
+    if (!cpu_in_userspace[current_cpu]) {
+        pthread_mutex_unlock(&cpu_state_mutex);
+        return;
+    }
+    cpu_in_userspace[current_cpu] = false; // Move this inside the lock too
+    pthread_mutex_unlock(&cpu_state_mutex);
 
-    // FILE* gov_file = gov_files[current_cpu];
-    // if (!gov_file) {
-    //     perror("Governor file not open");
-    //     return;
-    // }
+    FILE* gov_file = gov_files[current_cpu];
+    if (!gov_file) {
+        perror("Governor file not open");
+        return;
+    }
 
-    // fseek(gov_file, 0, SEEK_SET);
-    // fprintf(gov_file, "ondemand");
-    // fflush(gov_file);
+    fseek(gov_file, 0, SEEK_SET);
+    fprintf(gov_file, "ondemand");
+    fflush(gov_file);
 
 
-    // double elapsed_time = os::elapsedTime();
-    // printf("[DVFS] Time: %.6f sec, CPU: %d, Restored to ondemand\n", 
-    //        elapsed_time, current_cpu);
+    double elapsed_time = os::elapsedTime();
+    printf("[DVFS] Time: %.6f sec, CPU: %d, Restored to ondemand\n", 
+           elapsed_time, current_cpu);
 
 #endif
 }
