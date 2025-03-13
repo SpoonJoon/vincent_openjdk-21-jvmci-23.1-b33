@@ -1500,35 +1500,46 @@ jlong os::dvfsTest() {
     return current_freq;
 }
 
-// Global pointers to hold file handles per core
+pthread_mutex_t cpu_state_mutex;
 FILE** gov_files;
+FILE** gov_read_files;
 FILE** freq_files;
 int num_cores;
+bool* cpu_in_userspace;
+
 
 void os::init_sysfs_files() {
 #ifdef LINUX
+    pthread_mutex_init(&cpu_state_mutex, NULL);
     num_cores = get_nprocs();  // get the number of cores dynamically
     gov_files = (FILE**)os::malloc(num_cores * sizeof(FILE*), mtInternal);
+    gov_read_files = (FILE**)os::malloc(num_cores * sizeof(FILE*), mtInternal);
     freq_files = (FILE**)os::malloc(num_cores * sizeof(FILE*), mtInternal);
+    cpu_in_userspace = (bool*)os::malloc(num_cores * sizeof(bool), mtInternal);
+    
 
     for (int i = 0; i < num_cores; i++) {
         char filename[128];
 
-        // Open governor file for each CPU core.
         sprintf(filename, "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_governor", i);
         gov_files[i] = fopen(filename, "w");
         if (!gov_files[i]) {
-            perror("Failed to open governor file");
-            // Handle error as appropriate...
+            perror("failed to open governor file");
         }
 
-        // Open frequency file for each CPU core.
+        sprintf(filename, "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_governor", i);
+        gov_read_files[i] = fopen(filename, "r");
+        if (!gov_read_files[i]) {
+            perror("failed to open governor read file");
+        }
+
         sprintf(filename, "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_setspeed", i);
         freq_files[i] = fopen(filename, "w");
         if (!freq_files[i]) {
-            perror("Failed to open frequency file");
-            // Handle error as appropriate...
+            perror("failed to open frequency file");
         }
+
+        cpu_in_userspace[i] = false; 
     }
 #endif
 }
@@ -1545,6 +1556,9 @@ void os::cleanup_sysfs_files() {
     }
     free(gov_files);
     free(freq_files);
+    free(gov_read_files);
+    free(cpu_in_userspace);
+    pthread_mutex_destroy(&cpu_state_mutex);
 #endif
 }
 
@@ -1554,10 +1568,6 @@ jlong os::scaleCpuFreq(jlong freq) {
 #ifdef LINUX
 
     int current_cpu = sched_getcpu();
-    if (current_cpu < 0) {
-        perror("Invalid CPU id");
-        return -1;
-    }
     
     //init above
     FILE* gov_file = gov_files[current_cpu];
@@ -1567,17 +1577,31 @@ jlong os::scaleCpuFreq(jlong freq) {
         return -1;
     }
 
-    // write userspace to set cpu freq
-    fseek(gov_file, 0, SEEK_SET);
-    fprintf(gov_file, "userspace");
-    fflush(gov_file);
+    bool should_scale = false;
+    
+    pthread_mutex_lock(&cpu_state_mutex);
+    if (!cpu_in_userspace[current_cpu]) {
+        should_scale = true;
+        cpu_in_userspace[current_cpu] = true;
+    }
+    pthread_mutex_unlock(&cpu_state_mutex);
+    
+    if(should_scale){
+      // write userspace to set cpu freq
+      fseek(gov_file, 0, SEEK_SET);
+      fprintf(gov_file, "userspace");
+      fflush(gov_file);
 
-    fseek(freq_file, 0, SEEK_SET);
-    fprintf(freq_file, "%ld", freq);
-    fflush(freq_file);
+      fseek(freq_file, 0, SEEK_SET);
+      fprintf(freq_file, "%ld", freq);
+      fflush(freq_file);
+    }
+
 
     dvfs_count++;
-    printf("dvfs_count: %d\n", dvfs_count);
+    double elapsed_time = os::elapsedTime(); // Time since JVM startup in seconds
+    printf("[DVFS] Time: %.3f sec, CPU: %d, Count: %d, Frequency: %ld kHz\n", 
+           elapsed_time, current_cpu, dvfs_count, freq);
     return freq;  // Returning the new frequency (adjust as needed)
 #else
     return -1;
@@ -1592,6 +1616,14 @@ void os::restoreGovernor() {
         perror("Invalid CPU id");
         return;
     }
+
+    pthread_mutex_lock(&cpu_state_mutex);
+    if (!cpu_in_userspace[current_cpu]) {
+        pthread_mutex_unlock(&cpu_state_mutex);
+        return;
+    }
+    cpu_in_userspace[current_cpu] = false; // Move this inside the lock too
+    pthread_mutex_unlock(&cpu_state_mutex);
     
     FILE* gov_file = gov_files[current_cpu];
     if (!gov_file) {
@@ -1602,6 +1634,12 @@ void os::restoreGovernor() {
     fseek(gov_file, 0, SEEK_SET);
     fprintf(gov_file, "ondemand");
     fflush(gov_file);
+
+
+    double elapsed_time = os::elapsedTime();
+    printf("[DVFS] Time: %.3f sec, CPU: %d, Restored to ondemand\n", 
+           elapsed_time, current_cpu);
+
 #endif
 }
 
@@ -2221,3 +2259,4 @@ void os::die() {
 const char* os::file_separator() { return "/"; }
 const char* os::line_separator() { return "\n"; }
 const char* os::path_separator() { return ":"; }
+
