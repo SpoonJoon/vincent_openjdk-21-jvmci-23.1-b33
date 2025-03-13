@@ -1567,42 +1567,42 @@ int os::dvfs_count=0;
 jlong os::scaleCpuFreq(jlong freq) {
 #ifdef LINUX
 
-    // int current_cpu = sched_getcpu();
+    int current_cpu = sched_getcpu();
     
-    // //init above
-    // FILE* gov_file = gov_files[current_cpu];
-    // FILE* freq_file = freq_files[current_cpu];
-    // if (!gov_file || !freq_file) {
-    //     perror("File not open");
-    //     return -1;
-    // }
+    //init above
+    FILE* gov_file = gov_files[current_cpu];
+    FILE* freq_file = freq_files[current_cpu];
+    if (!gov_file || !freq_file) {
+        perror("File not open");
+        return -1;
+    }
 
-    // bool should_scale = false;
+    bool should_scale = false;
     
-    // pthread_mutex_lock(&cpu_state_mutex);
-    // if (!cpu_in_userspace[current_cpu]) {
-    //     should_scale = true;
-    //     cpu_in_userspace[current_cpu] = true;
-    // }
-    // pthread_mutex_unlock(&cpu_state_mutex);
+    pthread_mutex_lock(&cpu_state_mutex);
+    if (!cpu_in_userspace[current_cpu]) {
+        should_scale = true;
+        cpu_in_userspace[current_cpu] = true;
+    }
+    pthread_mutex_unlock(&cpu_state_mutex);
     
-    // if(should_scale){
-    //   // write userspace to set cpu freq
-    //   fseek(gov_file, 0, SEEK_SET);
-    //   fprintf(gov_file, "userspace");
-    //   fflush(gov_file);
+    if(should_scale){
+      // write userspace to set cpu freq
+      fseek(gov_file, 0, SEEK_SET);
+      fprintf(gov_file, "userspace");
+      fflush(gov_file);
 
-    //   fseek(freq_file, 0, SEEK_SET);
-    //   fprintf(freq_file, "%ld", freq);
-    //   fflush(freq_file);
+      fseek(freq_file, 0, SEEK_SET);
+      fprintf(freq_file, "%ld", freq);
+      fflush(freq_file);
 
-    //   dvfs_count++;
-    // }
+      dvfs_count++;
+    }
 
-    // double elapsed_time = os::elapsedTime(); // Time since JVM startup in seconds
-    // printf("[DVFS] Time: %.6f sec, CPU: %d, Count: %d, Frequency: %ld kHz\n", 
-    //        elapsed_time, current_cpu, dvfs_count, freq);
-    return 1;  // Returning the new frequency (adjust as needed)
+    double elapsed_time = os::elapsedTime(); // Time since JVM startup in seconds
+    printf("[DVFS] Time: %.6f sec, CPU: %d, Count: %d, Frequency: %ld kHz\n", 
+           elapsed_time, current_cpu, dvfs_count, freq);
+    return freq;  // Returning the new frequency (adjust as needed)
 #else
     return -1;
 #endif
