@@ -1541,6 +1541,8 @@ void os::init_sysfs_files() {
 
         cpu_in_userspace[i] = false; 
     }
+
+    // printf("JOONHWAN: dvfs and scaling sysfs files INITALIZED\n");
 #endif
 }
 
@@ -1559,6 +1561,8 @@ void os::cleanup_sysfs_files() {
     free(gov_read_files);
     free(cpu_in_userspace);
     pthread_mutex_destroy(&cpu_state_mutex);
+
+    // printf("JOONHWAN: dvfs and scaling sysfs files DEALLOCATED\n");
 #endif
 }
 
@@ -1599,9 +1603,9 @@ jlong os::scaleCpuFreq(jlong freq) {
       dvfs_count++;
     }
 
-    double elapsed_time = os::elapsedTime(); // Time since JVM startup in seconds
-    printf("[DVFS] Time: %.6f sec, CPU: %d, Count: %d, Frequency: %ld kHz\n", 
-           elapsed_time, current_cpu, dvfs_count, freq);
+    // double elapsed_time = os::elapsedTime(); // Time since JVM startup in seconds
+    // printf("[DVFS] Time: %.6f sec, CPU: %d, Count: %d, Frequency: %ld kHz\n", 
+    //        elapsed_time, current_cpu, dvfs_count, freq);
     return freq;  // Returning the new frequency (adjust as needed)
 #else
     return -1;
@@ -1636,9 +1640,9 @@ void os::restoreGovernor() {
     fflush(gov_file);
 
 
-    double elapsed_time = os::elapsedTime();
-    printf("[DVFS] Time: %.6f sec, CPU: %d, Restored to ondemand\n", 
-           elapsed_time, current_cpu);
+    // double elapsed_time = os::elapsedTime();
+    // printf("[DVFS] Time: %.6f sec, CPU: %d, Restored to ondemand\n", 
+    //        elapsed_time, current_cpu);
 
 #endif
 }
