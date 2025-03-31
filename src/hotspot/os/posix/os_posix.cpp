@@ -1510,6 +1510,7 @@ bool* cpu_in_userspace;
 
 void os::init_sysfs_files() {
 #ifdef LINUX
+    printf("JOONHWAN: [DVFS INIT] Scaling Invocation Count: %d\n", dvfs_count);
     pthread_mutex_init(&cpu_state_mutex, NULL);
     num_cores = get_nprocs();  // get the number of cores dynamically
     gov_files = (FILE**)os::malloc(num_cores * sizeof(FILE*), mtInternal);
@@ -1561,7 +1562,7 @@ void os::cleanup_sysfs_files() {
     free(gov_read_files);
     free(cpu_in_userspace);
     pthread_mutex_destroy(&cpu_state_mutex);
-    printf("[DVFS] Scaling Invocation Count: %d\n", dvfs_count);
+    printf("JOONHWAN: [DVFS] Scaling Invocation Count: %d\n", dvfs_count);
 
     // printf("JOONHWAN: dvfs and scaling sysfs files DEALLOCATED\n");
 #endif
