@@ -1562,8 +1562,12 @@ void os::cleanup_sysfs_files() {
     free(gov_read_files);
     free(cpu_in_userspace);
     pthread_mutex_destroy(&cpu_state_mutex);
-    printf("JOONHWAN: [DVFS] Scaling Invocation Count: %d\n", dvfs_count);
 
+    FILE* debug_log = fopen("/workspace/graal_vincent/compiler/jvm_dvfs.log", "a");
+    if (debug_log) {
+        fprintf(debug_log, "JOONHWAN: [DVFS] Scaling Invocation Count: %d\n", dvfs_count);
+        fclose(debug_log);
+    }
     // printf("JOONHWAN: dvfs and scaling sysfs files DEALLOCATED\n");
 #endif
 }
