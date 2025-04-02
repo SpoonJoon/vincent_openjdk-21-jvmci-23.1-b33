@@ -1607,6 +1607,7 @@ jlong os::scaleCpuFreq(jlong freq) {
       fflush(freq_file);
 
       dvfs_count++;
+      printf("JOONHWAN: [DVFS] Scaling Invocation Count: %d\n", dvfs_count);
     }
 
     // double elapsed_time = os::elapsedTime(); // Time since JVM startup in seconds
