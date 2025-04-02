@@ -4695,6 +4695,9 @@ jint os::init_2(void) {
     }
   }
 
+  //JOONHWAN: [DVFS] cleanup
+  atexit(cleanup_sysfs_files);
+
   // initialize thread priority policy
   prio_init();
 

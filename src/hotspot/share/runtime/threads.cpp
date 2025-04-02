@@ -941,7 +941,7 @@ void Threads::destroy_vm() {
 #endif
 
   //JOONHWAN: [DVFS] cleanup
-  os::cleanup_sysfs_files();
+  // os::cleanup_sysfs_files();
 
   notify_vm_shutdown();
 
@@ -1005,7 +1005,7 @@ void Threads::add(JavaThread* p, bool force_daemon) {
   ThreadService::add_thread(p, daemon);
 
   // Maintain fast thread list
-  ThreadsSMRSupport::add_thread(p);
+  ThreadsSMRSupport::add_thread(p); 
 
   // Increase the ObjectMonitor ceiling for the new thread.
   ObjectSynchronizer::inc_in_use_list_ceiling();
