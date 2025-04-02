@@ -853,6 +853,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
 //      > deletes PerfMemory resources
 //   + Delete this thread
 //   + Return to caller
+//   
 
 void Threads::destroy_vm() {
   JavaThread* thread = JavaThread::current();
@@ -938,6 +939,9 @@ void Threads::destroy_vm() {
 #if defined(COMPILER2) && !defined(PRODUCT)
   IdealGraphPrinter::clean_up();
 #endif
+
+  //JOONHWAN: [DVFS] cleanup
+  os::cleanup_sysfs_files();
 
   notify_vm_shutdown();
 
