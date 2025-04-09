@@ -2233,54 +2233,60 @@ void JavaThread::add_oop_handles_for_release() {
   Service_lock->notify_all();
 }
 
-// JOONHWAN: DVFS Timer thread implementation
-JavaThread* JavaThread::_timer_thread = NULL;
-bool JavaThread::_timer_thread_running = false;
+// Timer thread implementation
+Thread* JavaThread::_dvfs_timer_thread = NULL;
+bool JavaThread::_dvfs_timer_thread_running = false;
 
-void JavaThread::start_timer_thread() {
-  if (_timer_thread == NULL) {
-    _timer_thread = new JavaThread(&timer_thread_loop);
-    _timer_thread_running = true;
+void JavaThread::start_dvfs_timer_thread() {
+  if (_dvfs_timer_thread == NULL) {
+    _dvfs_timer_thread = new Thread(&dvfs_timer_thread_loop);
+    _dvfs_timer_thread_running = true;
     
-    if (!os::create_thread(_timer_thread, os::java_thread)) {
+    if (!os::create_thread(_dvfs_timer_thread, os::os_thread)) {
       vm_exit_during_initialization("Cannot create DVFS timer thread");
     }
     
     {
       MonitorLocker ml(Notify_lock);
-      os::start_thread(_timer_thread);
-      while (_timer_thread->thread_state() == _thread_new) {
+      os::start_thread(_dvfs_timer_thread);
+      while (_dvfs_timer_thread->thread_state() == _thread_new) {
         ml.wait();
       }
     }
   }
 }
 
-void JavaThread::stop_timer_thread() {
-  if (_timer_thread != NULL) {
-    _timer_thread_running = false;
+void JavaThread::stop_dvfs_timer_thread() {
+  if (_dvfs_timer_thread != NULL) {
+    _dvfs_timer_thread_running = false;
     {
       MonitorLocker ml(Notify_lock);
-      while (_timer_thread->thread_state() != _thread_in_vm) {
+      while (_dvfs_timer_thread->thread_state() != _thread_in_vm) {
         ml.wait();
       }
     }
-    delete _timer_thread;
-    _timer_thread = NULL;
+    delete _dvfs_timer_thread;
+    _dvfs_timer_thread = NULL;
   }
 }
 
-bool JavaThread::is_timer_thread_running() {
-  return _timer_thread_running;
+bool JavaThread::is_dvfs_timer_thread_running() {
+  return _dvfs_timer_thread_running;
 }
 
-void JavaThread::timer_thread_loop(JavaThread* thread, TRAPS) {
-  while (_timer_thread_running) {
+void JavaThread::dvfs_timer_thread_loop(Thread* thread) {
+  thread->set_no_safepoint_check_flag(true);
+  
+  while (_dvfs_timer_thread_running) {
     os::naked_short_sleep(8);
     
     // Increment timer for all Java threads
     ThreadsListHandle tlh;
     for (JavaThreadIteratorWithHandle jtiwh; JavaThread *jt = jtiwh.next(); ) {
+      if (!jt->is_oop_safe()) {
+        continue;
+      }
+      
       jt->increment_dvfs_timer();
       
       if (jt->should_sample_dvfs()) {
