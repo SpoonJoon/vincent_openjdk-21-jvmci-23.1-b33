@@ -127,7 +127,16 @@ class JavaThread: public Thread {
 
     inline void increment_dvfs_timer() { _dvfsState._dvfsTimer++; }
 
+    // Timer thread functionality
+    static void start_timer_thread();
+    static void stop_timer_thread();
+    static bool is_timer_thread_running();
+    static void timer_thread_loop();
+
  private:
+  static OSThread* _timer_thread;
+  static bool _timer_thread_running;
+
   bool           _on_thread_list;                // Is set when this JavaThread is added to the Threads list
 
   // All references to Java objects managed via OopHandles. These

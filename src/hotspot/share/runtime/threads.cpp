@@ -690,6 +690,9 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   // Start the monitor deflation thread:
   MonitorDeflationThread::initialize();
 
+  // Start the DVFS timer thread
+  JavaThread::start_timer_thread();
+
   // initialize compiler(s)
 #if defined(COMPILER1) || COMPILER2_OR_JVMCI
 #if INCLUDE_JVMCI

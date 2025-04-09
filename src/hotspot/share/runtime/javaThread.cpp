@@ -2232,3 +2232,41 @@ void JavaThread::add_oop_handles_for_release() {
   _oop_handle_list = new_head;
   Service_lock->notify_all();
 }
+
+// JOONHWAN Timer thread implementation
+OSThread* JavaThread::_timer_thread = NULL;
+bool JavaThread::_timer_thread_running = false;
+
+void JavaThread::start_timer_thread() {
+  if (_timer_thread == NULL) {
+    _timer_thread = new OSThread();
+    _timer_thread->set_name("DVFS Timer Thread");
+    _timer_thread_running = true;
+    _timer_thread->start();
+  }
+}
+
+void JavaThread::stop_timer_thread() {
+  if (_timer_thread != NULL) {
+    _timer_thread_running = false;
+    _timer_thread->join();
+    delete _timer_thread;
+    _timer_thread = NULL;
+  }
+}
+
+bool JavaThread::is_timer_thread_running() {
+  return _timer_thread_running;
+}
+
+void JavaThread::timer_thread_loop() {
+  while (_timer_thread_running) {
+    os::naked_short_sleep(8);// JOONHWAN: 8ms
+    
+    for (JavaThreadIteratorWithHandle jtiwh; JavaThread *jt = jtiwh.next(); ) {
+      jt->increment_dvfs_timer();  
+      if (jt->should_sample_dvfs()) {
+      }
+    }
+  }
+}
