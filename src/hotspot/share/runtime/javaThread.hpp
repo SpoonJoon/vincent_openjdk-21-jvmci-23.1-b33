@@ -134,7 +134,7 @@ class JavaThread: public Thread {
     static void timer_thread_loop();
 
  private:
-  static OSThread* _timer_thread;
+  static JavaThread* _timer_thread;
   static bool _timer_thread_running;
 
   bool           _on_thread_list;                // Is set when this JavaThread is added to the Threads list
