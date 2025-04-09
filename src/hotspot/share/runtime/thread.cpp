@@ -595,3 +595,52 @@ void Thread::SpinRelease(volatile int * adr) {
   // more than covers this on all platforms.
   *adr = 0;
 }
+
+// JOONHWAN: DVFS Timer Thread implementation
+DVFSTimerThread* DVFSTimerThread::_dvfs_thread = NULL;
+bool DVFSTimerThread::_should_terminate = false;
+
+void DVFSTimerThread::run() {
+  assert(this == _dvfs_thread, "just checking");
+
+  // Initialize thread-local storage
+  this->initialize_thread_local_storage();
+  this->set_native_thread_name(this->name());
+
+  while (!_should_terminate) {
+    // Sample thread activity and adjust CPU frequency
+    {
+      ThreadBlockInVM tbivm(this);
+      JavaThreadIteratorWithHandle jtiwh;
+      for (; JavaThread *jt = jtiwh.next(); ) {
+        if (jt->get_sampleCount() > 0) {
+          jt->increment_dvfs_timer();
+        }
+      }
+    }
+
+    // Sleep for the configured interval
+    os::naked_short_sleep(_sleep_interval);
+  }
+
+  // Signal shutdown
+  {
+    ThreadBlockInVM tbivm(this);
+    this->exit();
+  }
+}
+
+void DVFSTimerThread::start() {
+  assert(_dvfs_thread == NULL, "DVFS timer thread already exists");
+  _dvfs_thread = new DVFSTimerThread();
+  _dvfs_thread->set_priority(ThreadPriority::NearMaxPriority);
+  _dvfs_thread->start_thread();
+}
+
+void DVFSTimerThread::stop() {
+  if (_dvfs_thread != NULL) {
+    _should_terminate = true;
+    _dvfs_thread->join();
+    _dvfs_thread = NULL;
+  }
+}
