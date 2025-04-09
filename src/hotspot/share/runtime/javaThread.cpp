@@ -2233,52 +2233,13 @@ void JavaThread::add_oop_handles_for_release() {
   Service_lock->notify_all();
 }
 
-// Timer thread implementation
-Thread* JavaThread::_dvfs_timer_thread = NULL;
-bool JavaThread::_dvfs_timer_thread_running = false;
+// Static members for DVFS timer thread
+OSThread* JavaThread::_dvfs_timer_thread = NULL;
+bool JavaThread::_should_terminate_dvfs_timer = false;
 
-void JavaThread::start_dvfs_timer_thread() {
-  if (_dvfs_timer_thread == NULL) {
-    _dvfs_timer_thread = new Thread(&dvfs_timer_thread_loop);
-    _dvfs_timer_thread_running = true;
-    
-    if (!os::create_thread(_dvfs_timer_thread, os::os_thread)) {
-      vm_exit_during_initialization("Cannot create DVFS timer thread");
-    }
-    
-    {
-      MonitorLocker ml(Notify_lock);
-      os::start_thread(_dvfs_timer_thread);
-      while (_dvfs_timer_thread->thread_state() == _thread_new) {
-        ml.wait();
-      }
-    }
-  }
-}
-
-void JavaThread::stop_dvfs_timer_thread() {
-  if (_dvfs_timer_thread != NULL) {
-    _dvfs_timer_thread_running = false;
-    {
-      MonitorLocker ml(Notify_lock);
-      while (_dvfs_timer_thread->thread_state() != _thread_in_vm) {
-        ml.wait();
-      }
-    }
-    delete _dvfs_timer_thread;
-    _dvfs_timer_thread = NULL;
-  }
-}
-
-bool JavaThread::is_dvfs_timer_thread_running() {
-  return _dvfs_timer_thread_running;
-}
-
-void JavaThread::dvfs_timer_thread_loop(Thread* thread) {
-  thread->set_no_safepoint_check_flag(true);
-  
-  while (_dvfs_timer_thread_running) {
-    os::naked_short_sleep(8);
+void JavaThread::dvfs_timer_thread_loop() {
+  while (!_should_terminate_dvfs_timer) {
+    os::naked_short_sleep(1);
     
     // Increment timer for all Java threads
     ThreadsListHandle tlh;
@@ -2290,7 +2251,35 @@ void JavaThread::dvfs_timer_thread_loop(Thread* thread) {
       jt->increment_dvfs_timer();
       
       if (jt->should_sample_dvfs()) {
+        // TODO: Add your sampling logic here
       }
     }
   }
+}
+
+void JavaThread::start_dvfs_timer_thread() {
+  if (_dvfs_timer_thread == NULL) {
+    _dvfs_timer_thread = new OSThread();
+    _dvfs_timer_thread->set_name("DVFS Timer Thread");
+    _should_terminate_dvfs_timer = false;
+    
+    if (!os::create_thread(_dvfs_timer_thread, os::os_thread)) {
+      vm_exit_during_initialization("Cannot create DVFS timer thread");
+    }
+    
+    os::start_thread(_dvfs_timer_thread);
+  }
+}
+
+void JavaThread::stop_dvfs_timer_thread() {
+  if (_dvfs_timer_thread != NULL) {
+    _should_terminate_dvfs_timer = true;
+    _dvfs_timer_thread->join();
+    delete _dvfs_timer_thread;
+    _dvfs_timer_thread = NULL;
+  }
+}
+
+bool JavaThread::is_dvfs_timer_thread_running() {
+  return _dvfs_timer_thread != NULL;
 }
