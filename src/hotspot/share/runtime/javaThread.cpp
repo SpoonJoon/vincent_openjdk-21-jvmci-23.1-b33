@@ -2233,16 +2233,18 @@ void JavaThread::add_oop_handles_for_release() {
   Service_lock->notify_all();
 }
 
-// JOONHWAN Timer thread implementation
-OSThread* JavaThread::_timer_thread = NULL;
+// Timer thread implementation
+JavaThread* JavaThread::_timer_thread = NULL;
 bool JavaThread::_timer_thread_running = false;
 
 void JavaThread::start_timer_thread() {
   if (_timer_thread == NULL) {
-    _timer_thread = new OSThread();
+    // Create a new JavaThread for the timer
+    _timer_thread = new JavaThread(&timer_thread_entry);
     _timer_thread_running = true;
     
-    if (!os::create_thread(_timer_thread, os::timer_thread)) {
+    // Create the thread with the correct type
+    if (!os::create_thread(_timer_thread, os::java_thread)) {
       vm_exit_during_initialization("Cannot create DVFS timer thread");
     }
     
@@ -2250,7 +2252,7 @@ void JavaThread::start_timer_thread() {
     {
       MonitorLocker ml(Notify_lock);
       os::start_thread(_timer_thread);
-      while (!_timer_thread->is_running()) {
+      while (!_timer_thread->is_ready()) {
         ml.wait();
       }
     }
@@ -2263,7 +2265,7 @@ void JavaThread::stop_timer_thread() {
     // Wait for the timer thread to terminate
     {
       MonitorLocker ml(Notify_lock);
-      while (_timer_thread->is_running()) {
+      while (_timer_thread->is_ready()) {
         ml.wait();
       }
     }
@@ -2276,7 +2278,7 @@ bool JavaThread::is_timer_thread_running() {
   return _timer_thread_running;
 }
 
-void JavaThread::timer_thread_loop() {
+void JavaThread::timer_thread_entry(JavaThread* thread, TRAPS) {
   while (_timer_thread_running) {
     // Sleep for 1 millisecond using naked_short_sleep
     os::naked_short_sleep(1);
