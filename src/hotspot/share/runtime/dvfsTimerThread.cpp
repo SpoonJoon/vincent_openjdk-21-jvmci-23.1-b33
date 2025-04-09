@@ -13,14 +13,14 @@ void DVFSThread::start(int interval_ms) {
     _interval_ms = interval_ms;
     _instance = new DVFSThread();
     _instance->set_name("DVFS Thread");
-    _instance->create_and_start();
+    _instance->start_thread();
   }
 }
 
 void DVFSThread::stop() {
   if (_instance != nullptr) {
     _should_terminate = true;
-    _instance->join();
+    _instance->wait_for_thread_to_terminate();
     delete _instance;
     _instance = nullptr;
   }
@@ -41,14 +41,7 @@ void DVFSThread::execute_tasks() {
   ThreadsListHandle tlh;
   for (JavaThreadIteratorWithHandle jtiwh; JavaThread* thread = jtiwh.next(); ) {
     if (thread->should_sample_dvfs()) {
-      thread->_energyTimeSliceExpired++;
+      thread->increment_dvfs_timer();
     }
   }
-}
-
-void DVFSThread::print() const {
-  tty->print("\"%s\" ", name());
-  tty->print("tid=" INTPTR_FORMAT " ", p2i(this));
-  tty->print("interval=%dms ", _interval_ms);
-  tty->cr();
 } 

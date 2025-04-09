@@ -19,7 +19,6 @@ public:
   void run() override;
   void sleep() const;
   void execute_tasks();
-  void print() const override;
 };
 
 #endif // SHARE_RUNTIME_DVFSTIMERTHREAD_HPP 
