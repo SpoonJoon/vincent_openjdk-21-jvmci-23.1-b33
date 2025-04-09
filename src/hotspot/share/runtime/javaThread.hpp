@@ -1191,7 +1191,51 @@ public:
   static bool has_oop_handles_to_release() {
     return _oop_handle_list != nullptr;
   }
+
+  // JOONHWANDVFS-related fields 
+  // TODO: maybe readd method prof?
+  private:
+    struct DVFSState {
+      uint32_t _dvfsTimer : 8;        // 8 bits for timer (0-255)
+      uint32_t _skipCount : 8;        // 8 bits for skip counter
+      uint32_t _sampleCount : 8;      // 8 bits for sample counter
+      uint32_t _prevFreq : 8;         // 8 bits for previous frequency
+    } _dvfsState;
+
+    // Single word for energy tracking
+    uint64_t _energyTimeSliceExpired;
+    
+    // Constants - defined as static constexpr to allow compiler optimization
+    static constexpr int STRIDE = 7;        // Base skip count
+    static constexpr int SAMPLES = 32;      // Samples per interval
+    static constexpr int FREQ = 0;          // Frequency threshold
+
+  public:
+    // Inline methods for fast path
+    inline bool should_sample_dvfs() {
+      if (_dvfsState._sampleCount == 0) {
+        _dvfsState._dvfsTimer++;
+        return false;
+      }
+      if (_dvfsState._dvfsTimer >= STRIDE) {
+        _dvfsState._skipCount--;
+        if (_dvfsState._skipCount == 0) {
+          _dvfsState._skipCount = STRIDE;
+          _dvfsState._sampleCount--;
+          if (_dvfsState._sampleCount == 0) {
+            _dvfsState._dvfsTimer = 0;
+            _dvfsState._sampleCount = SAMPLES;
+            return true;
+          }
+          return true;
+        }
+      }
+      return false;
+    }
+
+    inline void increment_dvfs_timer() { _dvfsState._dvfsTimer++; }
 };
+
 
 inline JavaThread* JavaThread::current_or_null() {
   Thread* current = Thread::current_or_null();

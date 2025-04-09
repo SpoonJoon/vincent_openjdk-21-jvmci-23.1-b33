@@ -838,6 +838,7 @@ Compile::Compile( ciEnv* ci_env, ciMethod* target, int osr_bci,
     }
   }
 
+  //Joonhwan TODO insert DVFS instrumentation here
   // Now optimize
   Optimize();
   if (failing())  return;
