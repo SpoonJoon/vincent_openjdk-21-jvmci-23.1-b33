@@ -33,8 +33,6 @@
 #ifdef __APPLE__
 # include <mach/mach_time.h>
 #endif
-#include "runtime/nonJavaThread.hpp"
-#include "runtime/thread.hpp"
 
 class frame;
 class JvmtiAgent;
