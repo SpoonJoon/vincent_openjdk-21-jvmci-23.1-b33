@@ -85,7 +85,7 @@ class JavaThread: public Thread {
   friend class Threads;
   friend class ServiceThread; // for deferred OopHandle release access
 
-  // TODO: maybe re add method prof?
+  // JOONHWAN TODO: maybe re add method prof?
   private:
     struct DVFSState {
       uint32_t _dvfsTimer : 8;        // 8 bits for timer (0-255)

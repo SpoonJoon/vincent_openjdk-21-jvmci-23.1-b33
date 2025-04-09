@@ -681,5 +681,4 @@ inline Thread* Thread::current_or_null_safe() {
   return nullptr;
 }
 
-
 #endif // SHARE_RUNTIME_THREAD_HPP

@@ -144,30 +144,4 @@ class WatcherThread: public NonJavaThread {
   int sleep() const;
 };
 
-class DVFSTimerThread: public NonJavaThread {
-  friend class VMStructs;
- private:
-  static DVFSTimerThread* _dvfs_thread;
-  static bool _should_terminate;
-  static const int _sleep_interval = 8; // 8ms sleep interval
-
- public:
-  DVFSTimerThread() : NonJavaThread() {
-    set_name("DVFS Timer Thread");
-  }
-
-  // Prevent destruction
-  ~DVFSTimerThread() { guarantee(false, "DVFS timer thread deletion attempted"); }
-
-  // Thread management
-  static void start();
-  static void stop();
-
-  // Thread identification
-  static bool is_dvfs_thread(Thread* t) { return t == _dvfs_thread; }
-
-  // Main loop
-  virtual void run();
-};
-
 #endif // SHARE_RUNTIME_NONJAVATHREAD_HPP
