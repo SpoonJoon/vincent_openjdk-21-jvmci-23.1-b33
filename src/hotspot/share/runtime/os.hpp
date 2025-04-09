@@ -118,6 +118,35 @@ template<class E> class GrowableArray;
 
 // %%%%% Moved ThreadState, START_FN, OSThread to new osThread.hpp. -- Rose
 
+// JOONHWAN: Added for DVFS
+class DVFSTimerThread : public NonJavaThread {
+  friend class VMStructs;
+
+  private:
+    static DVFSTimerThread* _dvfs_thread;
+    static bool _should_terminate;
+    static const int _sleep_interval = 8;  // 8ms interval
+
+  public:
+    DVFSTimerThread() : NonJavaThread() {
+      set_name("DVFS Timer Thread");
+    }
+
+    ~DVFSTimerThread() {
+      guarantee(false, "DVFSTimerThread deletion destructed");
+    }
+
+    bool is_DVFS_thread() const { return true; }
+
+    static DVFSTimerThread* dvfs_thread() { return _dvfs_thread; }
+
+    static void start();
+    static void stop();
+
+  protected:
+    virtual void run();
+};
+
 // Platform-independent error return values from OS functions
 enum OSReturn {
   OS_OK         =  0,        // Operation was successful
@@ -551,7 +580,8 @@ class os: AllStatic {
     compiler_thread,
     watcher_thread,
     asynclog_thread,   // dedicated to flushing logs
-    os_thread
+    os_thread,
+    dvfs_timer_thread  // JOONHWAN: Added for DVFS
   };
 
   static bool create_thread(Thread* thread,

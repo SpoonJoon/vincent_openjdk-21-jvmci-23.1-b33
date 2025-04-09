@@ -817,6 +817,9 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
     ShouldNotReachHere();
   }
 
+  // JOONHWAN: Start the DVFS timer thread
+  DVFSTimerThread::start();
+
   return JNI_OK;
 }
 
