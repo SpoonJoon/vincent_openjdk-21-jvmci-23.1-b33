@@ -136,7 +136,7 @@ class DVFSTimerThread : public NonJavaThread {
     }
 
     ~DVFSTimerThread() {
-      guarantee(false, "DVFSTimerThread deletion destructed");
+      guarantee(false, "DVFSTimerThread deletion must fix the race with VM termination");
     }
 
     static void start();
@@ -144,7 +144,7 @@ class DVFSTimerThread : public NonJavaThread {
     static bool is_dvfs_thread(Thread* t) { return t == _dvfs_thread; }
 
   protected:
-    void run() override;
+    virtual void run();
 };
 
 // Platform-independent error return values from OS functions
