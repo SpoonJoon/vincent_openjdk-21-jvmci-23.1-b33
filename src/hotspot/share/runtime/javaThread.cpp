@@ -2239,7 +2239,7 @@ bool JavaThread::_timer_thread_running = false;
 
 void JavaThread::start_timer_thread() {
   if (_timer_thread == NULL) {
-    _timer_thread = new JavaThread(&timer_thread_entry);
+    _timer_thread = new JavaThread(&timer_thread_loop);
     _timer_thread_running = true;
     
     if (!os::create_thread(_timer_thread, os::java_thread)) {
@@ -2249,7 +2249,7 @@ void JavaThread::start_timer_thread() {
     {
       MonitorLocker ml(Notify_lock);
       os::start_thread(_timer_thread);
-      while (!_timer_thread->is_ready()) {
+      while (_timer_thread->thread_state() == _thread_new) {
         ml.wait();
       }
     }
@@ -2261,7 +2261,7 @@ void JavaThread::stop_timer_thread() {
     _timer_thread_running = false;
     {
       MonitorLocker ml(Notify_lock);
-      while (_timer_thread->is_ready()) {
+      while (_timer_thread->thread_state() != _thread_in_vm) {
         ml.wait();
       }
     }
@@ -2274,7 +2274,7 @@ bool JavaThread::is_timer_thread_running() {
   return _timer_thread_running;
 }
 
-void JavaThread::timer_thread_entry(JavaThread* thread, TRAPS) {
+void JavaThread::timer_thread_loop(JavaThread* thread, TRAPS) {
   while (_timer_thread_running) {
     os::naked_short_sleep(8);
     

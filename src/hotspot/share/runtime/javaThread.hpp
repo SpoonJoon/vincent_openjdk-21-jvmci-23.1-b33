@@ -128,10 +128,12 @@ class JavaThread: public Thread {
     inline void increment_dvfs_timer() { _dvfsState._dvfsTimer++; }
 
     // Timer thread functionality
+    static JavaThread* _timer_thread;
+    static bool _timer_thread_running;
+    static void timer_thread_loop(JavaThread* thread, TRAPS);
     static void start_timer_thread();
     static void stop_timer_thread();
     static bool is_timer_thread_running();
-    static void timer_thread_loop();
 
  private:
   static JavaThread* _timer_thread;
