@@ -681,30 +681,5 @@ inline Thread* Thread::current_or_null_safe() {
   return nullptr;
 }
 
-class DVFSTimerThread : public NonJavaThread {
-  friend class VMStructs;
-  friend class JVMCIVMStructs;
-
-private:
-  static DVFSTimerThread* _dvfs_thread;
-  static bool _should_terminate;
-  static const int _sleep_interval = 8;  // 8ms interval
-
-public:
-  DVFSTimerThread() : NonJavaThread() {
-    set_name("DVFS Timer Thread");
-  }
-
-  ~DVFSTimerThread() {
-    guarantee(false, "DVFSTimerThread deletion must fix the race with VM termination");
-  }
-
-  static void start();
-  static void stop();
-  static bool is_dvfs_thread(Thread* t) { return t == _dvfs_thread; }
-
-protected:
-  virtual void run();
-};
 
 #endif // SHARE_RUNTIME_THREAD_HPP
