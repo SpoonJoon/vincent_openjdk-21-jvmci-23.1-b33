@@ -345,37 +345,3 @@ void WatcherThread::print_on(outputStream* st) const {
   Thread::print_on(st);
   st->cr();
 }
-
-
-// ======= DVFSTimerThread ========
-
-DVFSTimerThread* DVFSTimerThread::_instance = nullptr;
-
-DVFSTimerThread::DVFSTimerThread() : NonJavaThread() {
-  set_name("DVFS Timer");
-  if (os::create_thread(this, os::dvfs_timer_thread)) {
-    os::set_priority(this, NearMaxPriority);
-    os::start_thread(this);
-  }
-}
-
-void DVFSTimerThread::initialize() {
-  if (_instance == nullptr) {
-    _instance = new DVFSTimerThread();
-  }
-}
-
-void DVFSTimerThread::run() {
-  while (true) {
-    int sleep_time = sleep();
-    if (sleep_time == 0) {
-      break;
-    }
-    os::naked_short_sleep(sleep_time);
-  }
-}
-
-int DVFSTimerThread::sleep() const {
-  return 8; // Return constant 8ms interval
-}
-
