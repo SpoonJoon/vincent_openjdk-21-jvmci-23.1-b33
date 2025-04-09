@@ -2240,16 +2240,33 @@ bool JavaThread::_timer_thread_running = false;
 void JavaThread::start_timer_thread() {
   if (_timer_thread == NULL) {
     _timer_thread = new OSThread();
-    _timer_thread->set_name("DVFS Timer Thread");
     _timer_thread_running = true;
-    _timer_thread->start();
+    
+    if (!os::create_thread(_timer_thread, os::timer_thread)) {
+      vm_exit_during_initialization("Cannot create DVFS timer thread");
+    }
+    
+    // Wait for the timer thread to become ready
+    {
+      MonitorLocker ml(Notify_lock);
+      os::start_thread(_timer_thread);
+      while (!_timer_thread->is_running()) {
+        ml.wait();
+      }
+    }
   }
 }
 
 void JavaThread::stop_timer_thread() {
   if (_timer_thread != NULL) {
     _timer_thread_running = false;
-    _timer_thread->join();
+    // Wait for the timer thread to terminate
+    {
+      MonitorLocker ml(Notify_lock);
+      while (_timer_thread->is_running()) {
+        ml.wait();
+      }
+    }
     delete _timer_thread;
     _timer_thread = NULL;
   }
@@ -2261,11 +2278,18 @@ bool JavaThread::is_timer_thread_running() {
 
 void JavaThread::timer_thread_loop() {
   while (_timer_thread_running) {
-    os::naked_short_sleep(8);// JOONHWAN: 8ms
+    // Sleep for 1 millisecond using naked_short_sleep
+    os::naked_short_sleep(1);
     
+    // Increment timer for all Java threads
+    ThreadsListHandle tlh;
     for (JavaThreadIteratorWithHandle jtiwh; JavaThread *jt = jtiwh.next(); ) {
-      jt->increment_dvfs_timer();  
+      jt->increment_dvfs_timer();
+      
+      // Check if we should sample this thread
       if (jt->should_sample_dvfs()) {
+        // TODO: Add your sampling logic here
+        // For example: collect performance metrics, adjust frequency, etc.
       }
     }
   }
