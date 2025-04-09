@@ -33,6 +33,8 @@
 #ifdef __APPLE__
 # include <mach/mach_time.h>
 #endif
+#include "runtime/nonJavaThread.hpp"
+#include "runtime/thread.hpp"
 
 class frame;
 class JvmtiAgent;
@@ -121,6 +123,7 @@ template<class E> class GrowableArray;
 // JOONHWAN: Added for DVFS
 class DVFSTimerThread : public NonJavaThread {
   friend class VMStructs;
+  friend class JVMCIVMStructs;
 
   private:
     static DVFSTimerThread* _dvfs_thread;
@@ -136,15 +139,12 @@ class DVFSTimerThread : public NonJavaThread {
       guarantee(false, "DVFSTimerThread deletion destructed");
     }
 
-    bool is_DVFS_thread() const { return true; }
-
-    static DVFSTimerThread* dvfs_thread() { return _dvfs_thread; }
-
     static void start();
     static void stop();
+    static bool is_dvfs_thread(Thread* t) { return t == _dvfs_thread; }
 
   protected:
-    virtual void run();
+    void run() override;
 };
 
 // Platform-independent error return values from OS functions
