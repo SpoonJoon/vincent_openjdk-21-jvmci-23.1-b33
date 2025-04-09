@@ -136,9 +136,6 @@ class JavaThread: public Thread {
     static bool is_dvfs_timer_thread_running();
 
  private:
-  static Thread* _dvfs_timer_thread;
-  static bool _dvfs_timer_thread_running;
-
   bool           _on_thread_list;                // Is set when this JavaThread is added to the Threads list
 
   // All references to Java objects managed via OopHandles. These
