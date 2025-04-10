@@ -552,7 +552,7 @@ class os: AllStatic {
     watcher_thread,
     asynclog_thread,   // dedicated to flushing logs
     os_thread,
-    dvfs_timer_thread  // JOONHWAN: Added for DVFS
+    dvfs_thread  // JOONHWAN: Added for DVFS
   };
 
   static bool create_thread(Thread* thread,
