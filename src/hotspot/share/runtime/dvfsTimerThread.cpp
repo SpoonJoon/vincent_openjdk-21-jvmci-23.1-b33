@@ -12,14 +12,15 @@ void DVFSThread::start(int interval_ms) {
   if (_instance == nullptr) {
     _interval_ms = interval_ms;
     _instance = new DVFSThread();
-    _instance->create_and_start();
+    if (os::create_thread(_instance, os::dvfs_thread)) {
+      os::start_thread(_instance);
+    }
   }
 }
 
 void DVFSThread::stop() {
   if (_instance != nullptr) {
     _should_terminate = true;
-    _instance->join();
     delete _instance;
     _instance = nullptr;
   }
