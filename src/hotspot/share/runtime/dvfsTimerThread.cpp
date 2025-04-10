@@ -3,7 +3,7 @@
 #include "runtime/javaThread.hpp"
 #include "runtime/os.hpp"
 #include "runtime/threadSMR.hpp"
-#include "logging/log.hpp"
+#include "utilities/ostream.hpp"
 
 DVFSThread* DVFSThread::_instance = nullptr;
 bool DVFSThread::_should_terminate = false;
@@ -14,7 +14,7 @@ void DVFSThread::start() {
     _instance = new DVFSThread();
     if (os::create_thread(_instance, os::dvfs_thread)) {
       os::start_thread(_instance);
-      log_info(dvfs)("DVFS thread started with interval %d ms", _interval_ms);
+      tty->print_cr("DVFS thread started with interval %d ms", _interval_ms);
     }
   }
 }
@@ -24,12 +24,12 @@ void DVFSThread::stop() {
     _should_terminate = true;
     delete _instance;
     _instance = nullptr;
-    log_info(dvfs)("DVFS thread stopped");
+    tty->print_cr("DVFS thread stopped");
   }
 }
 
 void DVFSThread::run() {
-  log_info(dvfs)("DVFS thread running");
+  tty->print_cr("DVFS thread running");
   while (!_should_terminate) {
     os::naked_short_sleep(_interval_ms);
     execute_tasks();
@@ -47,10 +47,10 @@ void DVFSThread::execute_tasks() {
     if (thread->should_sample_dvfs()) {
       thread->increment_dvfs_timer();
       sampled_count++;
-      log_info(dvfs)("Thread %p current timer value: %d", thread, thread->get_dvfs_timer());
+      tty->print_cr("Thread %p timer: %d", thread, thread->get_dvfs_timer());
     }
   }
   if (sampled_count > 0) {
-    log_info(dvfs)("Sampled %d threads", sampled_count);
+    tty->print_cr("Sampled %d threads", sampled_count);
   }
 } 

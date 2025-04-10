@@ -125,9 +125,7 @@ class JavaThread: public Thread {
       return false;
     }
 
-    inline void increment_dvfs_timer() { 
-      _dvfsState._dvfsTimer++; 
-    }
+    inline void increment_dvfs_timer() { _dvfsState._dvfsTimer++; }
 
     inline uint32_t get_dvfs_timer() const { return _dvfsState._dvfsTimer; }
 
