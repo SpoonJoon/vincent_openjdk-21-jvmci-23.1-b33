@@ -12,7 +12,7 @@ private:
 
 public:
   static DVFSThread* instance() { return _instance; }
-  static void start(int interval_ms = 1);
+  static void start();
   static void stop();
   static bool is_running() { return _instance != nullptr; }
 

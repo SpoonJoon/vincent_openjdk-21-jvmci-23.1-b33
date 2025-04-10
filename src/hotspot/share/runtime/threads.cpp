@@ -113,6 +113,9 @@
 #include "jfr/jfr.hpp"
 #endif
 
+// JOONHWAN: Added for DVFS
+#include "runtime/dvfsTimerThread.hpp"
+
 // Initialization after module runtime initialization
 void universe_post_module_init();  // must happen after call_initPhase2
 
@@ -691,7 +694,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   MonitorDeflationThread::initialize();
 
   // Start the DVFS timer thread
-  JavaThread::start_timer_thread();
+  DVFSThread::start();
 
   // initialize compiler(s)
 #if defined(COMPILER1) || COMPILER2_OR_JVMCI

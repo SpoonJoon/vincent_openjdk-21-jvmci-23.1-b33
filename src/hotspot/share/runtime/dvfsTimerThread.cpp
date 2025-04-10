@@ -6,9 +6,9 @@
 
 DVFSThread* DVFSThread::_instance = nullptr;
 bool DVFSThread::_should_terminate = false;
-int DVFSThread::_interval_ms = 1;
+int DVFSThread::_interval_ms = 8;
 
-void DVFSThread::start(int interval_ms) {
+void DVFSThread::start() {
   if (_instance == nullptr) {
     _interval_ms = interval_ms;
     _instance = new DVFSThread();
