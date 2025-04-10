@@ -15,6 +15,7 @@ public:
   static void start();
   static void stop();
   static bool is_running() { return _instance != nullptr; }
+  static void set_build_phase(bool in_build);
 
   void run() override;
   void sleep() const;

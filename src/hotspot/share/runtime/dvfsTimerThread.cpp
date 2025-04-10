@@ -4,12 +4,19 @@
 #include "runtime/os.hpp"
 #include "runtime/threadSMR.hpp"
 #include "utilities/ostream.hpp"
+#include "cds/archiveBuilder.hpp"
 
 DVFSThread* DVFSThread::_instance = nullptr;
 bool DVFSThread::_should_terminate = false;
 int DVFSThread::_interval_ms = 8;
+static bool _in_build_phase = false;
 
 void DVFSThread::start() {
+  // Don't start the DVFS thread if we're creating a CDS archive
+  if (ArchiveBuilder::is_active()) {
+    return;
+  }
+
   if (_instance == nullptr) {
     _instance = new DVFSThread();
     if (os::create_thread(_instance, os::dvfs_thread)) {
@@ -53,4 +60,8 @@ void DVFSThread::execute_tasks() {
   if (sampled_count > 0) {
     tty->print_cr("Sampled %d threads", sampled_count);
   }
+}
+
+void DVFSThread::set_build_phase(bool in_build) {
+  _in_build_phase = in_build;
 } 

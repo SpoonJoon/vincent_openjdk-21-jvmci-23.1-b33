@@ -694,7 +694,9 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   MonitorDeflationThread::initialize();
 
   // Start the DVFS timer thread
-  DVFSThread::start();
+  if (!ArchiveBuilder::is_active()) {
+    DVFSThread::start();
+  }
 
   // initialize compiler(s)
 #if defined(COMPILER1) || COMPILER2_OR_JVMCI
