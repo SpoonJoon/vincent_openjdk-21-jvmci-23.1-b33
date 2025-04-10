@@ -23,21 +23,20 @@ void DVFSThread::start() {
       os::start_thread(_instance);
       log_file = fopen("/tmp/dvfs_debug.log", "a");
       if (log_file != nullptr) {
-        fprintf(log_file, "DVFS thread started successfully at %lld ms with interval %d ms\n", 
-                os::javaTimeMillis(), _interval_ms);
+        fprintf(log_file, "DVFS thread started successfully with interval %d ms\n", _interval_ms);
         fclose(log_file);
       }
     } else {
       log_file = fopen("/tmp/dvfs_debug.log", "a");
       if (log_file != nullptr) {
-        fprintf(log_file, "Failed to create DVFS thread at %lld ms\n", os::javaTimeMillis());
+        fprintf(log_file, "Failed to create DVFS thread\n");
         fclose(log_file);
       }
     }
   } else {
     FILE* log_file = fopen("/tmp/dvfs_debug.log", "a");
     if (log_file != nullptr) {
-      fprintf(log_file, "DVFS thread already exists at %lld ms, skipping start\n", os::javaTimeMillis());
+      fprintf(log_file, "DVFS thread already exists, skipping start\n");
       fclose(log_file);
     }
   }
@@ -76,7 +75,7 @@ void DVFSThread::sleep() const {
 void DVFSThread::execute_tasks() {
   FILE* log_file = fopen("/tmp/dvfs_debug.log", "a");
   if (log_file != nullptr) {
-    fprintf(log_file, "execute_tasks() called at %lld ms\n", os::javaTimeMillis());
+    fprintf(log_file, "execute_tasks() called\n");
     fclose(log_file);
   }
 
