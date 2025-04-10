@@ -23,20 +23,21 @@ void DVFSThread::start() {
       os::start_thread(_instance);
       log_file = fopen("/tmp/dvfs_debug.log", "a");
       if (log_file != nullptr) {
-        fprintf(log_file, "DVFS thread started with interval %d ms\n", _interval_ms);
+        fprintf(log_file, "DVFS thread started successfully at %lld ms with interval %d ms\n", 
+                os::javaTimeMillis(), _interval_ms);
         fclose(log_file);
       }
     } else {
       log_file = fopen("/tmp/dvfs_debug.log", "a");
       if (log_file != nullptr) {
-        fprintf(log_file, "Failed to create DVFS thread\n");
+        fprintf(log_file, "Failed to create DVFS thread at %lld ms\n", os::javaTimeMillis());
         fclose(log_file);
       }
     }
   } else {
     FILE* log_file = fopen("/tmp/dvfs_debug.log", "a");
     if (log_file != nullptr) {
-      fprintf(log_file, "DVFS thread already exists, skipping start\n");
+      fprintf(log_file, "DVFS thread already exists at %lld ms, skipping start\n", os::javaTimeMillis());
       fclose(log_file);
     }
   }
@@ -73,25 +74,37 @@ void DVFSThread::sleep() const {
 }
 
 void DVFSThread::execute_tasks() {
+  FILE* log_file = fopen("/tmp/dvfs_debug.log", "a");
+  if (log_file != nullptr) {
+    fprintf(log_file, "execute_tasks() called at %lld ms\n", os::javaTimeMillis());
+    fclose(log_file);
+  }
+
   ThreadsListHandle tlh;
   int sampled_count = 0;
+  int total_threads = 0;
+  
   for (JavaThreadIteratorWithHandle jtiwh; JavaThread* thread = jtiwh.next(); ) {
+    total_threads++;
     if (thread->should_sample_dvfs()) {
       thread->increment_dvfs_timer();
       sampled_count++;
       FILE* log_file = fopen("/tmp/dvfs_debug.log", "a");
       if (log_file != nullptr) {
-        fprintf(log_file, "Thread %p timer: %d\n", thread, thread->get_dvfs_timer());
+        fprintf(log_file, "Thread %p sampled - timer: %d, skipCount: %d, sampleCount: %d\n", 
+                thread, 
+                thread->get_dvfs_timer(),
+                thread->_dvfsState._skipCount,
+                thread->_dvfsState._sampleCount);
         fclose(log_file);
       }
     }
   }
-  if (sampled_count > 0) {
-    FILE* log_file = fopen("/tmp/dvfs_debug.log", "a");
-    if (log_file != nullptr) {
-      fprintf(log_file, "Sampled %d threads\n", sampled_count);
-      fclose(log_file);
-    }
+
+  log_file = fopen("/tmp/dvfs_debug.log", "a");
+  if (log_file != nullptr) {
+    fprintf(log_file, "Total threads: %d, Sampled threads: %d\n", total_threads, sampled_count);
+    fclose(log_file);
   }
 }
 
