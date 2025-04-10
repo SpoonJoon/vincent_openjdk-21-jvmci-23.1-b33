@@ -4,7 +4,6 @@
 #include "runtime/os.hpp"
 #include "runtime/threadSMR.hpp"
 #include "utilities/ostream.hpp"
-#include "cds/archiveBuilder.hpp"
 
 DVFSThread* DVFSThread::_instance = nullptr;
 bool DVFSThread::_should_terminate = false;
@@ -12,16 +11,33 @@ int DVFSThread::_interval_ms = 8;
 static bool _in_build_phase = false;
 
 void DVFSThread::start() {
-  // Don't start the DVFS thread if we're creating a CDS archive
-  if (ArchiveBuilder::is_active()) {
-    return;
-  }
-
   if (_instance == nullptr) {
+    FILE* log_file = fopen("/tmp/dvfs_debug.log", "a");
+    if (log_file != nullptr) {
+      fprintf(log_file, "Creating new DVFS thread instance\n");
+      fclose(log_file);
+    }
+
     _instance = new DVFSThread();
     if (os::create_thread(_instance, os::dvfs_thread)) {
       os::start_thread(_instance);
-      tty->print_cr("DVFS thread started with interval %d ms", _interval_ms);
+      log_file = fopen("/tmp/dvfs_debug.log", "a");
+      if (log_file != nullptr) {
+        fprintf(log_file, "DVFS thread started with interval %d ms\n", _interval_ms);
+        fclose(log_file);
+      }
+    } else {
+      log_file = fopen("/tmp/dvfs_debug.log", "a");
+      if (log_file != nullptr) {
+        fprintf(log_file, "Failed to create DVFS thread\n");
+        fclose(log_file);
+      }
+    }
+  } else {
+    FILE* log_file = fopen("/tmp/dvfs_debug.log", "a");
+    if (log_file != nullptr) {
+      fprintf(log_file, "DVFS thread already exists, skipping start\n");
+      fclose(log_file);
     }
   }
 }
@@ -31,12 +47,21 @@ void DVFSThread::stop() {
     _should_terminate = true;
     delete _instance;
     _instance = nullptr;
-    tty->print_cr("DVFS thread stopped");
+    FILE* log_file = fopen("/tmp/dvfs_debug.log", "a");
+    if (log_file != nullptr) {
+      fprintf(log_file, "DVFS thread stopped\n");
+      fclose(log_file);
+    }
   }
 }
 
 void DVFSThread::run() {
-  tty->print_cr("DVFS thread running");
+  FILE* log_file = fopen("/tmp/dvfs_debug.log", "a");
+  if (log_file != nullptr) {
+    fprintf(log_file, "DVFS thread running\n");
+    fclose(log_file);
+  }
+
   while (!_should_terminate) {
     os::naked_short_sleep(_interval_ms);
     execute_tasks();
@@ -54,11 +79,19 @@ void DVFSThread::execute_tasks() {
     if (thread->should_sample_dvfs()) {
       thread->increment_dvfs_timer();
       sampled_count++;
-      tty->print_cr("Thread %p timer: %d", thread, thread->get_dvfs_timer());
+      FILE* log_file = fopen("/tmp/dvfs_debug.log", "a");
+      if (log_file != nullptr) {
+        fprintf(log_file, "Thread %p timer: %d\n", thread, thread->get_dvfs_timer());
+        fclose(log_file);
+      }
     }
   }
   if (sampled_count > 0) {
-    tty->print_cr("Sampled %d threads", sampled_count);
+    FILE* log_file = fopen("/tmp/dvfs_debug.log", "a");
+    if (log_file != nullptr) {
+      fprintf(log_file, "Sampled %d threads\n", sampled_count);
+      fclose(log_file);
+    }
   }
 }
 
