@@ -90,11 +90,9 @@ void DVFSThread::execute_tasks() {
       sampled_count++;
       FILE* log_file = fopen("/tmp/dvfs_debug.log", "a");
       if (log_file != nullptr) {
-        fprintf(log_file, "Thread %p sampled - timer: %d, skipCount: %d, sampleCount: %d\n", 
+        fprintf(log_file, "Thread %p sampled - timer: %d\n", 
                 thread, 
-                thread->get_dvfs_timer(),
-                thread->_dvfsState._skipCount,
-                thread->_dvfsState._sampleCount);
+                thread->get_dvfs_timer());
         fclose(log_file);
       }
     }
