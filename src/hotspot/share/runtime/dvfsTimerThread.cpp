@@ -10,7 +10,6 @@ int DVFSThread::_interval_ms = 8;
 
 void DVFSThread::start() {
   if (_instance == nullptr) {
-    _interval_ms = interval_ms;
     _instance = new DVFSThread();
     if (os::create_thread(_instance, os::dvfs_thread)) {
       os::start_thread(_instance);
