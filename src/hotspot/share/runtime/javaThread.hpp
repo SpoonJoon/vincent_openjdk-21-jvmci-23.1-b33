@@ -87,12 +87,6 @@ class JavaThread: public Thread {
 
   // JOONHWAN TODO: maybe re add method prof?
   private:
-    struct DVFSState {
-      uint32_t _dvfsTimer : 8;        // 8 bits for timer (0-255)
-      uint32_t _skipCount : 8;        // 8 bits for skip counter
-      uint32_t _sampleCount : 8;      // 8 bits for sample counter
-      uint32_t _prevFreq : 8;         // 8 bits for previous frequency
-    } _dvfsState;
 
     // Single word for energy tracking
     uint64_t _energyTimeSliceExpired;
@@ -103,6 +97,13 @@ class JavaThread: public Thread {
     static constexpr int FREQ = 0;          // Frequency threshold
 
   public:
+    // JOONHWAN TODO:moved public for deubg
+     struct DVFSState {
+      uint32_t _dvfsTimer : 8;        // 8 bits for timer (0-255)
+      uint32_t _skipCount : 8;        // 8 bits for skip counter
+      uint32_t _sampleCount : 8;      // 8 bits for sample counter
+      uint32_t _prevFreq : 8;         // 8 bits for previous frequency
+    } _dvfsState;
     // I feel like this should add dvfs calls to the method body
     inline bool should_sample_dvfs() {
       if (_dvfsState._sampleCount == 0) {

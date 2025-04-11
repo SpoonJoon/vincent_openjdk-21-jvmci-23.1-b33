@@ -85,10 +85,20 @@ void DVFSThread::execute_tasks() {
   
   for (JavaThreadIteratorWithHandle jtiwh; JavaThread* thread = jtiwh.next(); ) {
     total_threads++;
+    log_file = fopen("/tmp/dvfs_debug.log", "a");
+    if (log_file != nullptr) {
+      fprintf(log_file, "Thread %p state - timer: %d, skipCount: %d, sampleCount: %d\n", 
+              thread,
+              thread->get_dvfs_timer(),
+              thread->get_dvfs_skip_count(),
+              thread->get_dvfs_sample_count());
+      fclose(log_file);
+    }
+
     if (thread->should_sample_dvfs()) {
       thread->increment_dvfs_timer();
       sampled_count++;
-      FILE* log_file = fopen("/tmp/dvfs_debug.log", "a");
+      log_file = fopen("/tmp/dvfs_debug.log", "a");
       if (log_file != nullptr) {
         fprintf(log_file, "Thread %p sampled - timer: %d\n", 
                 thread, 
