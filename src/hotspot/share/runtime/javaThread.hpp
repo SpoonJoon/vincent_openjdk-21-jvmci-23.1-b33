@@ -105,8 +105,8 @@ class JavaThread: public Thread {
   public:
     // I feel like this should add dvfs calls to the method body
     inline bool should_sample_dvfs() {
+      _dvfsState._dvfsTimer++;  // Always increment timer
       if (_dvfsState._sampleCount == 0) {
-        _dvfsState._dvfsTimer++;
         return false;
       }
       if (_dvfsState._dvfsTimer >= STRIDE) {
