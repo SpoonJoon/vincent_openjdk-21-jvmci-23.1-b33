@@ -129,7 +129,7 @@ class JavaThread: public Thread {
 
     inline uint32_t get_dvfs_timer() const { return _dvfsState._dvfsTimer; }
     inline uint32_t get_dvfs_skip_count() const { return _dvfsState._skipCount; }
-    inline uint32_t get_dvfs_sample_count() const { return _dvfsState.sampleCount; }
+    inline uint32_t get_dvfs_sample_count() const { return _dvfsState._sampleCount; }
 
  private:
   bool           _on_thread_list;                // Is set when this JavaThread is added to the Threads list
