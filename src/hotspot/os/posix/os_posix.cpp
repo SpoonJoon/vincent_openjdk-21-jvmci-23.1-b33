@@ -1572,51 +1572,73 @@ void os::cleanup_sysfs_files() {
 #endif
 }
 
+// Scales the cpu frequency of the core to the target frequency
+int os::set_cpu_governor(FILE* gov_file, const char* target, int core_id) {
+    size_t data_length;
+    size_t data_written;
+    
+    fseek(gov_file, 0, SEEK_SET);
+    data_length = strlen(target);
+    data_written = fwrite(target, 1, data_length, gov_file);
+
+    if (data_length != data_written) {
+        printf("Failed to write governor %s to core %d, error: %s\n", 
+               target, core_id, strerror(errno));
+        return 1;
+    }
+    return 0;
+}
+
+// Scales the cpu frequency of the core to the target frequency
+int os::set_cpu_frequency(FILE* scale_file, int freq, int core_id) {
+    size_t data_length;
+    size_t data_written;
+    
+    fseek(scale_file, 0, SEEK_SET);
+    data_length = get_pos_intnum(freq);
+    data_written = fprintf(scale_file, "%d", freq);
+
+    //simple sanity check
+    if (data_length != data_written) {
+        printf("Failed to write frequency %d to core %d, error: %s\n", 
+               freq, core_id, strerror(errno));
+        return 1;
+    }
+    return 0;
+}
+
 int os::dvfs_count=0;
 
+//TODO: JOONHWAN swap for int freq
 jlong os::scaleCpuFreq(jlong freq) {
-#ifdef LINUX
+  JavaThread *jt = JavaThread::current();
+  
+  if (jt->dvfs_enabled()){  
+    jt->decrement_skip_count();
 
-    int current_cpu = sched_getcpu();
-    
-    //init above
-    FILE* gov_file = gov_files[current_cpu];
-    FILE* freq_file = freq_files[current_cpu];
-    if (!gov_file || !freq_file) {
-        perror("File not open");
-        return -1;
+    if (jt->get_dvfs_skip_count() == 0) {
+      jt->reset_skip_count();
+      jt->decrement_sample_count();
+
+      // delimited sampling limit reached for this interval
+      if (jt->get_dvfs_sample_count() == 0) {
+        jt->disable_dvfs();
+        jt->reset_sample_count();
+
+        //reset governor to ondemand
+        int current_cpu = sched_getcpu();
+        set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu);
+
+        return 0;
+      } 
+      
+      // scale the cpu freq
+      int current_cpu = sched_getcpu();
+      set_cpu_frequency(freq_files[current_cpu], freq, current_cpu);
+
+      //TODO: JOONHWAN Maybe save the governor and freq to the thread object
     }
-
-    bool should_scale = false;
-    
-    pthread_mutex_lock(&cpu_state_mutex);
-    if (!cpu_in_userspace[current_cpu]) {
-        should_scale = true;
-        cpu_in_userspace[current_cpu] = true;
-    }
-    pthread_mutex_unlock(&cpu_state_mutex);
-    
-    if(should_scale){
-      // write userspace to set cpu freq
-      fseek(gov_file, 0, SEEK_SET);
-      fprintf(gov_file, "userspace");
-      fflush(gov_file);
-
-      fseek(freq_file, 0, SEEK_SET);
-      fprintf(freq_file, "%ld", freq);
-      fflush(freq_file);
-
-      dvfs_count++;
-      printf("JOONHWAN: [DVFS] Scaling Invocation Count: %d\n", dvfs_count);
-    }
-
-    // double elapsed_time = os::elapsedTime(); // Time since JVM startup in seconds
-    // printf("[DVFS] Time: %.6f sec, CPU: %d, Count: %d, Frequency: %ld kHz\n", 
-    //        elapsed_time, current_cpu, dvfs_count, freq);
-    return freq;  // Returning the new frequency (adjust as needed)
-#else
-    return -1;
-#endif
+  }
 }
 
 //TODO parametrize for different governors

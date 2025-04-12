@@ -1118,9 +1118,15 @@ void os::javaTimeNanos_info(jvmtiTimerInfo *info_ptr) {
   info_ptr->kind = JVMTI_TIMER_ELAPSED;                // elapsed not CPU time
 }
 
-// TODO: Joonhwan support for diff os currently a stub implementation
+// TODO: Joonhwan support for other os [currently a stub implementation]
 void os::init_sysfs_files() {}
 void os::cleanup_sysfs_files() {}
+int os::set_cpu_governor(FILE* gov_file, const char* target, int core_id) {
+    return 0;
+}
+int os::set_cpu_frequency(FILE* scale_file, int freq, int core_id) {
+    return 0;
+}
 
 jlong os::dvfsTest() {
     return 0;

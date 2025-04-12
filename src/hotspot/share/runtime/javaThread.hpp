@@ -87,49 +87,60 @@ class JavaThread: public Thread {
 
   // JOONHWAN TODO: maybe re add method prof?
   private:
-    struct DVFSState {
-      uint32_t _dvfsTimer : 8;        // 8 bits for timer (0-255)
-      uint32_t _skipCount : 8;        // 8 bits for skip counter
-      uint32_t _sampleCount : 8;      // 8 bits for sample counter
-      uint32_t _prevFreq : 8;         // 8 bits for previous frequency
-    } _dvfsState;
+    // struct DVFSState {
+    //   uint32_t _dvfsValid : 1;        // 8 bits for timer (0-255)
+    //   uint32_t _skipCount : 8;        // 8 bits for skip counter
+    //   uint32_t _sampleCount : 8;      // 8 bits for sample counter
+    //   uint32_t _prevFreq : 8;         // 8 bits for previous frequency
+    // } _dvfsState;
 
-    // Single word for energy tracking
-    uint64_t _energyTimeSliceExpired;
+
+    bool _dvfsValid;  
+    int _dvfsSkipCount;
+    int _dvfsSampleCount;
+    int _dvfsPrevFreq;
     
     // Constants - defined as static constexpr to allow compiler optimization
     static constexpr int STRIDE = 7;        // Base skip count
     static constexpr int SAMPLES = 32;      // Samples per interval
-    static constexpr int FREQ = 0;          // Frequency threshold
 
   public:
     // I feel like this should add dvfs calls to the method body
-    inline bool should_sample_dvfs() {
-      _dvfsState._dvfsTimer++;  // Always increment timer
-      if (_dvfsState._sampleCount == 0) {
-        return false;
-      }
-      if (_dvfsState._dvfsTimer >= STRIDE) {
-        _dvfsState._skipCount--;
-        if (_dvfsState._skipCount == 0) {
-          _dvfsState._skipCount = STRIDE;
-          _dvfsState._sampleCount--;
-          if (_dvfsState._sampleCount == 0) {
-            _dvfsState._dvfsTimer = 0;
-            _dvfsState._sampleCount = SAMPLES;
-            return true;
-          }
-          return true;
-        }
-      }
-      return false;
-    }
+    // inline bool should_sample_dvfs() {
+    //   _dvfsState._dvfsValid++;  // Always increment timer
+    //   if (_dvfsState._sampleCount == 0) {
+    //     return false;
+    //   }
+    //   if (_dvfsState._dvfsValid >= STRIDE) {
+    //     _dvfsState._skipCount--;
+    //     if (_dvfsState._skipCount == 0) {
+    //       _dvfsState._skipCount = STRIDE;
+    //       _dvfsState._sampleCount--;
+    //       if (_dvfsState._sampleCount == 0) {
+    //         _dvfsState._dvfsValid = 0;
+    //         _dvfsState._sampleCount = SAMPLES;
+    //         return true;
+    //       }
+    //       return true;
+    //     }
+    //   }
+    //   return false;
+    // }
+   
+    inline void enable_dvfs() { _dvfsValid = true; }
+    inline void disable_dvfs() { _dvfsValid = false; }
+    inline bool dvfs_enabled() { return _dvfsValid; }
 
-    inline void increment_dvfs_timer() { _dvfsState._dvfsTimer++; }
+    inline void decrement_skip_count() { _dvfsSkipCount--; }
+    inline void decrement_sample_count() { _dvfsSampleCount--; }
+    
+    inline void reset_skip_count() { _dvfsSkipCount = STRIDE; }
+    inline void reset_sample_count() { _dvfsSampleCount = SAMPLES; }
 
-    inline uint32_t get_dvfs_timer() const { return _dvfsState._dvfsTimer; }
+    inline uint32_t get_dvfs_timer() const { return _dvfsState._dvfsValid; }
     inline uint32_t get_dvfs_skip_count() const { return _dvfsState._skipCount; }
     inline uint32_t get_dvfs_sample_count() const { return _dvfsState._sampleCount; }
+
 
  private:
   bool           _on_thread_list;                // Is set when this JavaThread is added to the Threads list
