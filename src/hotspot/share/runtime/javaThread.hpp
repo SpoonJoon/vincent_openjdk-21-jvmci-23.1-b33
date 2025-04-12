@@ -137,9 +137,9 @@ class JavaThread: public Thread {
     inline void reset_skip_count() { _dvfsSkipCount = STRIDE; }
     inline void reset_sample_count() { _dvfsSampleCount = SAMPLES; }
 
-    inline uint32_t get_dvfs_timer() const { return _dvfsState._dvfsValid; }
-    inline uint32_t get_dvfs_skip_count() const { return _dvfsState._skipCount; }
-    inline uint32_t get_dvfs_sample_count() const { return _dvfsState._sampleCount; }
+    inline uint32_t get_dvfs_timer() const { return _dvfsValid; }
+    inline uint32_t get_dvfs_skip_count() const { return _skipCount; }
+    inline uint32_t get_dvfs_sample_count() const { return _sampleCount; }
 
 
  private:
