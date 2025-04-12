@@ -1639,6 +1639,8 @@ jlong os::scaleCpuFreq(jlong freq) {
       //TODO: JOONHWAN Maybe save the governor and freq to the thread object
     }
   }
+  //stub
+  return 0;
 }
 
 //TODO parametrize for different governors
