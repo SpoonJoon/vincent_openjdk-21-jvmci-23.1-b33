@@ -30,7 +30,7 @@ void DVFSThread::stop() {
 void DVFSThread::run() {
   while (!_should_terminate) {
     os::naked_short_sleep(_interval_ms);
-    enable_dvfs();
+    start_dvfs_timeslice();
   }
 }
 
@@ -38,7 +38,7 @@ void DVFSThread::sleep() const {
   os::naked_short_sleep(_interval_ms);
 }
 
-void DVFSThread::enable_dvfs() {
+void DVFSThread::start_dvfs_timeslice() {
   ThreadsListHandle tlh;
   for (JavaThreadIteratorWithHandle jtiwh; JavaThread* thread = jtiwh.next(); ) {
       thread->enable_dvfs();

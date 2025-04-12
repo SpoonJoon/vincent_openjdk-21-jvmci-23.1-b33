@@ -19,7 +19,7 @@ public:
 
   void run() override;
   void sleep() const;
-  void increment_dvfs_timer();
+  void start_dvfs_timeslice();
 };
 
 #endif // SHARE_RUNTIME_DVFSTIMERTHREAD_HPP 
