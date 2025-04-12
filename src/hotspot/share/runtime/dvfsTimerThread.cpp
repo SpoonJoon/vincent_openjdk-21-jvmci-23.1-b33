@@ -43,8 +43,8 @@ void DVFSThread::start_dvfs_timeslice() {
   for (JavaThreadIteratorWithHandle jtiwh; JavaThread* thread = jtiwh.next(); ) {
       thread->enable_dvfs();
     }
-  }
 }
+
 
 void DVFSThread::set_build_phase(bool in_build) {
   _in_build_phase = in_build;
