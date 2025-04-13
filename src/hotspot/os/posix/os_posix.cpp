@@ -1674,7 +1674,7 @@ jlong os::scaleCpuFreq(jlong freq) {
       } 
     
       jt->set_prev_freq(get_cpu_freq(freq_read_files[current_cpu]));
-      save_prev_cpu_gov(gov_files[current_cpu], jt);
+      // save_prev_cpu_gov(gov_files[current_cpu], jt); APR 13 debugging failed fseek
       //chage gov and scale
       set_cpu_governor(gov_files[current_cpu], "userspace", current_cpu);
       set_cpu_frequency(freq_files[current_cpu], freq, current_cpu);
