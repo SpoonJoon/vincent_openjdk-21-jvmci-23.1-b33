@@ -137,7 +137,7 @@ class JavaThread: public Thread {
     inline void decrement_sample_count() { _dvfsSampleCount--; }
 
     inline void set_prev_freq(int freq) { _dvfsPrevFreq = freq; }
-    inline void set_prev_governor(char* governor) { _dvfsPrevGovernor = governor; }
+    // inline void set_prev_governor(char[] governor) { _dvfsPrevGovernor = governor; } removed see os::save_prev_cpu_gov 
     
     inline void reset_skip_count() { _dvfsSkipCount = STRIDE; }
     inline void reset_sample_count() { _dvfsSampleCount = SAMPLES; }
