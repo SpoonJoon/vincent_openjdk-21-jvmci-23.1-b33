@@ -1523,7 +1523,7 @@ void os::init_sysfs_files() {
         char filename[128];
 
         sprintf(filename, "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_governor", i);
-        gov_files[i] = fopen(filename, "w");
+        gov_files[i] = fopen(filename, "r+");
         if (!gov_files[i]) {
             perror("failed to open governor file");
         }
