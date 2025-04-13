@@ -270,6 +270,9 @@ class os: AllStatic {
   //TODO parametrize CPU to restore the correct governor
   static void  restoreGovernor();
   static int check_write_gov(int cores, char** gov_files, const char* target);
+  static int get_cpu_freq(File* cpu_file);
+  static int save_prev_cpu_gov(File* gov_file, JavaThread* jt);
+
   static int write_freq_all_cores(int cores, char** freq_files, 
                                 const char* cur_freq, const char* scal_freq, int freq);
   static int get_pos_intnum(int num);

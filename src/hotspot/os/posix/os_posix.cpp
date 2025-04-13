@@ -1502,7 +1502,7 @@ jlong os::dvfsTest() {
 
 pthread_mutex_t cpu_state_mutex;
 FILE** gov_files;
-FILE** gov_read_files;
+FILE** freq_read_files;
 FILE** freq_files;
 int num_cores;
 bool* cpu_in_userspace;
@@ -1514,7 +1514,7 @@ void os::init_sysfs_files() {
     pthread_mutex_init(&cpu_state_mutex, NULL);
     num_cores = get_nprocs();  // get the number of cores dynamically
     gov_files = (FILE**)os::malloc(num_cores * sizeof(FILE*), mtInternal);
-    gov_read_files = (FILE**)os::malloc(num_cores * sizeof(FILE*), mtInternal);
+    freq_read_files = (FILE**)os::malloc(num_cores * sizeof(FILE*), mtInternal);
     freq_files = (FILE**)os::malloc(num_cores * sizeof(FILE*), mtInternal);
     cpu_in_userspace = (bool*)os::malloc(num_cores * sizeof(bool), mtInternal);
     
@@ -1528,9 +1528,9 @@ void os::init_sysfs_files() {
             perror("failed to open governor file");
         }
 
-        sprintf(filename, "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_governor", i);
-        gov_read_files[i] = fopen(filename, "r");
-        if (!gov_read_files[i]) {
+        sprintf(filename, "/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_cur_freq", i);
+        freq_read_files[i] = fopen(filename, "r");
+        if (!freq_read_files[i]) {
             perror("failed to open governor read file");
         }
 
@@ -1559,7 +1559,7 @@ void os::cleanup_sysfs_files() {
     }
     free(gov_files);
     free(freq_files);
-    free(gov_read_files);
+    free(freq_read_files);
     free(cpu_in_userspace);
     pthread_mutex_destroy(&cpu_state_mutex);
 
@@ -1607,9 +1607,32 @@ int os::set_cpu_frequency(FILE* scale_file, int freq, int core_id) {
     return 0;
 }
 
+int os::get_cpu_freq(FILE* scale_file) {
+  int freq;
+  fseek(scale_file, 0, SEEK_SET);
+  if (fscanf(scale_file, "%d", &freq) != 1) {
+      printf("Failed to read frequency, error: %s\n", strerror(errno));
+      return -1;
+  }
+  return freq;
+}
+
+// gets the cpu governor of the core and updates the _dvfsPrevGovernor buffer in javaThread.hpp
+int os::save_prev_cpu_gov(FILE* gov_file, JavaThread* jt) {
+  fseek(gov_file, 0, SEEK_SET);
+  size_t data_written = fread(jt->_dvfsPrevGovernor, 1, sizeof(jt->_dvfsPrevGovernor), gov_file);
+  
+  if (data_written == 0) {
+      printf("Failed to read governor, error: %s\n", strerror(errno));
+      return -1;
+  }
+  jt->_dvfsPrevGovernor[data_written - 1] = '\0';
+  return 0;
+}
+
 int os::dvfs_count=0;
 
-//TODO: JOONHWAN swap for int freq
+//TODO: JOONHWAN rename, swap for int freq
 jlong os::scaleCpuFreq(jlong freq) {
   JavaThread *jt = JavaThread::current();
   
@@ -1625,30 +1648,28 @@ jlong os::scaleCpuFreq(jlong freq) {
       if (jt->get_dvfs_sample_count() == 0) {
         jt->disable_dvfs();
         jt->reset_sample_count();
+        jt->reset_prev_freq(); //sets _dvfsPrevFreq to 0
+        jt->reset_prev_governor(); //sets _dvfsPrevGovernor to nullptr
 
         //reset governor to ondemand
         int current_cpu = sched_getcpu();
         set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu);
-
         return 0;
       } 
-      
-      // scale the cpu freq
+    
       int current_cpu = sched_getcpu();
+      jt->set_prev_freq(get_cpu_freq(freq_read_files[current_cpu]));
+      save_prev_cpu_gov(gov_files[current_cpu], jt);
+      //chage gov and scale
+      set_cpu_governor(gov_files[current_cpu], "userspace", current_cpu);
       set_cpu_frequency(freq_files[current_cpu], freq, current_cpu);
-      return 0;
-
-      //TODO: JOONHWAN Maybe save the governor and freq to the thread object
-    } else {  
-      //counter limit not reached yet
       return 0;
     }
   }
-  //stub
   return 0;
 }
 
-//TODO parametrize for different governors
+//TODO rename, governor parametrization
 void os::restoreGovernor() {
   JavaThread *jt = JavaThread::current();
   
@@ -1664,51 +1685,22 @@ void os::restoreGovernor() {
       if (jt->get_dvfs_sample_count() == 0) {
         jt->disable_dvfs();
         jt->reset_sample_count();
-
+        jt->reset_prev_freq(); //sets _dvfsPrevFreq to 0
+        jt->reset_prev_governor(); //sets _dvfsPrevGovernor to null terminated string
         //reset governor to ondemand
         int current_cpu = sched_getcpu();
         set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu);
         return;
       } 
-      
-      // scale the cpu freq
-      int current_cpu = sched_getcpu();
-      set_cpu_governor(freq_files[current_cpu], "ondemand", current_cpu);
-      
-      //TODO: JOONHWAN Maybe save the governor and freq to the thread object
+
+      if (strcmp(jt->_dvfsPrevGovernor, "userspace") == 0) { //if prev governor was userspace that means we are in another optimized method's body
+          set_cpu_governor(gov_files[current_cpu], "userspace", current_cpu);
+          set_cpu_frequency(freq_files[current_cpu], jt->_dvfsPrevFreq);
+      } else {
+          set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu);
+      }
     }
   }
-#ifdef LINUX
-    int current_cpu = sched_getcpu();
-    if (current_cpu < 0) {
-        perror("Invalid CPU id");
-        return;
-    }
-
-    pthread_mutex_lock(&cpu_state_mutex);
-    if (!cpu_in_userspace[current_cpu]) {
-        pthread_mutex_unlock(&cpu_state_mutex);
-        return;
-    }
-    cpu_in_userspace[current_cpu] = false; // Move this inside the lock too
-    pthread_mutex_unlock(&cpu_state_mutex);
-
-    FILE* gov_file = gov_files[current_cpu];
-    if (!gov_file) {
-        perror("Governor file not open");
-        return;
-    }
-
-    fseek(gov_file, 0, SEEK_SET);
-    fprintf(gov_file, "ondemand");
-    fflush(gov_file);
-
-
-    // double elapsed_time = os::elapsedTime();
-    // printf("[DVFS] Time: %.6f sec, CPU: %d, Restored to ondemand\n", 
-    //        elapsed_time, current_cpu);
-
-#endif
 }
 
 // Time since start-up in seconds to a fine granularity.

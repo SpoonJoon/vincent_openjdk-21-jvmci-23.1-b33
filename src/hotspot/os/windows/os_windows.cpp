@@ -1140,10 +1140,13 @@ void os::restoreGovernor() {
     return 0;
 }
 
-//Joonhwan Stubs so we can build
 int os::check_write_gov(int cores, char** gov_files, const char* target) {
     return 0;
 }
+
+int os::get_cpu_freq(File* cpu_file){return 0;}
+int os::save_prev_cpu_gov(File* gov_file, JavaThread* jt){return 0;}
+
 int os::write_freq_all_cores(int cores, char** freq_files, 
                               const char* cur_freq, const char* scal_freq, int freq) { 
     return 0; 

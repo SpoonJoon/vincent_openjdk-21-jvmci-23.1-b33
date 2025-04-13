@@ -99,7 +99,7 @@ class JavaThread: public Thread {
     int _dvfsSkipCount;
     int _dvfsSampleCount;
     int _dvfsPrevFreq;
-    char* _dvfsPrevGovernor;
+    char _dvfsPrevGovernor[32];
     
     
     // Constants - defined as static constexpr to allow compiler optimization
@@ -135,9 +135,14 @@ class JavaThread: public Thread {
 
     inline void decrement_skip_count() { _dvfsSkipCount--; }
     inline void decrement_sample_count() { _dvfsSampleCount--; }
+
+    inline void set_prev_freq(int freq) { _dvfsPrevFreq = freq; }
+    inline void set_prev_governor(char* governor) { _dvfsPrevGovernor = governor; }
     
     inline void reset_skip_count() { _dvfsSkipCount = STRIDE; }
     inline void reset_sample_count() { _dvfsSampleCount = SAMPLES; }
+    inline void reset_prev_freq() { _dvfsPrevFreq = 0; }
+    inline void reset_prev_governor() { _dvfsPrevGovernor[0] = '\0'; }
 
     inline uint32_t get_dvfs_timer() const { return _dvfsValid; }
     inline uint32_t get_dvfs_skip_count() const { return _dvfsSkipCount; }
