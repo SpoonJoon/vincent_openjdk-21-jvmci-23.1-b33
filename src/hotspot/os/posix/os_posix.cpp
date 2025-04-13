@@ -1616,6 +1616,7 @@ jlong os::scaleCpuFreq(jlong freq) {
   if (jt->dvfs_enabled()){  
     jt->decrement_skip_count();
 
+    // counter based sampling
     if (jt->get_dvfs_skip_count() == 0) {
       jt->reset_skip_count();
       jt->decrement_sample_count();
@@ -1635,8 +1636,12 @@ jlong os::scaleCpuFreq(jlong freq) {
       // scale the cpu freq
       int current_cpu = sched_getcpu();
       set_cpu_frequency(freq_files[current_cpu], freq, current_cpu);
+      return 0;
 
       //TODO: JOONHWAN Maybe save the governor and freq to the thread object
+    } else {  
+      //counter limit not reached yet
+      return 0;
     }
   }
   //stub
@@ -1645,6 +1650,34 @@ jlong os::scaleCpuFreq(jlong freq) {
 
 //TODO parametrize for different governors
 void os::restoreGovernor() {
+  JavaThread *jt = JavaThread::current();
+  
+  if (jt->dvfs_enabled()){  
+    jt->decrement_skip_count();
+
+    // counter based sampling
+    if (jt->get_dvfs_skip_count() == 0) {
+      jt->reset_skip_count();
+      jt->decrement_sample_count();
+
+      // delimited sampling limit reached for this interval
+      if (jt->get_dvfs_sample_count() == 0) {
+        jt->disable_dvfs();
+        jt->reset_sample_count();
+
+        //reset governor to ondemand
+        int current_cpu = sched_getcpu();
+        set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu);
+        return;
+      } 
+      
+      // scale the cpu freq
+      int current_cpu = sched_getcpu();
+      set_cpu_governor(freq_files[current_cpu], "ondemand", current_cpu);
+      
+      //TODO: JOONHWAN Maybe save the governor and freq to the thread object
+    }
+  }
 #ifdef LINUX
     int current_cpu = sched_getcpu();
     if (current_cpu < 0) {

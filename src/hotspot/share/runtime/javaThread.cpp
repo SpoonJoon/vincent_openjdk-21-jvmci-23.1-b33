@@ -408,6 +408,7 @@ JavaThread::JavaThread() :
   _dvfsSkipCount(STRIDE),
   _dvfsSampleCount(SAMPLES),
   _dvfsPrevFreq(0),
+  _dvfsPrevGovernor(nullptr),
 
   _on_thread_list(false),
   DEBUG_ONLY(_java_call_counter(0) COMMA)

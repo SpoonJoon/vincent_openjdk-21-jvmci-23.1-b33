@@ -99,6 +99,8 @@ class JavaThread: public Thread {
     int _dvfsSkipCount;
     int _dvfsSampleCount;
     int _dvfsPrevFreq;
+    char* _dvfsPrevGovernor;
+    
     
     // Constants - defined as static constexpr to allow compiler optimization
     static constexpr int STRIDE = 7;        // Base skip count
