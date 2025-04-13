@@ -1638,6 +1638,7 @@ jlong os::scaleCpuFreq(jlong freq) {
   
   if (jt->dvfs_enabled()){  
     jt->decrement_skip_count();
+    int current_cpu = sched_getcpu();
 
     // counter based sampling
     if (jt->get_dvfs_skip_count() == 0) {
@@ -1650,14 +1651,11 @@ jlong os::scaleCpuFreq(jlong freq) {
         jt->reset_sample_count();
         jt->reset_prev_freq(); //sets _dvfsPrevFreq to 0
         jt->reset_prev_governor(); //sets _dvfsPrevGovernor to nullptr
-
-        //reset governor to ondemand
-        int current_cpu = sched_getcpu();
-        set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu);
+        
+        set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu); //reset governor to ondemand
         return 0;
       } 
     
-      int current_cpu = sched_getcpu();
       jt->set_prev_freq(get_cpu_freq(freq_read_files[current_cpu]));
       save_prev_cpu_gov(gov_files[current_cpu], jt);
       //chage gov and scale
@@ -1681,6 +1679,7 @@ void os::restoreGovernor() {
       jt->reset_skip_count();
       jt->decrement_sample_count();
 
+      int current_cpu = sched_getcpu();
       // delimited sampling limit reached for this interval
       if (jt->get_dvfs_sample_count() == 0) {
         jt->disable_dvfs();
@@ -1688,14 +1687,14 @@ void os::restoreGovernor() {
         jt->reset_prev_freq(); //sets _dvfsPrevFreq to 0
         jt->reset_prev_governor(); //sets _dvfsPrevGovernor to null terminated string
         //reset governor to ondemand
-        int current_cpu = sched_getcpu();
+        
         set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu);
         return;
       } 
 
       if (strcmp(jt->_dvfsPrevGovernor, "userspace") == 0) { //if prev governor was userspace that means we are in another optimized method's body
           set_cpu_governor(gov_files[current_cpu], "userspace", current_cpu);
-          set_cpu_frequency(freq_files[current_cpu], jt->_dvfsPrevFreq);
+          set_cpu_frequency(freq_files[current_cpu], jt->get_dvfs_prev_freq(), current_cpu);
       } else {
           set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu);
       }

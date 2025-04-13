@@ -126,6 +126,7 @@ class JavaThread: public Thread {
     inline uint32_t get_dvfs_timer() const { return _dvfsValid; }
     inline uint32_t get_dvfs_skip_count() const { return _dvfsSkipCount; }
     inline uint32_t get_dvfs_sample_count() const { return _dvfsSampleCount; }
+    inline int get_dvfs_prev_freq() { return _dvfsPrevFreq; }
 
 
  private:
