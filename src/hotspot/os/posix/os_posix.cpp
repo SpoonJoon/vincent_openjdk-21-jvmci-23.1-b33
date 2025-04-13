@@ -1618,17 +1618,34 @@ int os::get_cpu_freq(FILE* scale_file) {
 }
 
 // gets the cpu governor of the core and updates the _dvfsPrevGovernor buffer in javaThread.hpp
-int os::save_prev_cpu_gov(FILE* gov_file, JavaThread* jt) {
-  fseek(gov_file, 0, SEEK_SET);
-  size_t data_written = fread(jt->_dvfsPrevGovernor, 1, sizeof(jt->_dvfsPrevGovernor), gov_file);
+// int os::save_prev_cpu_gov(FILE* gov_file, JavaThread* jt) {
+//   fseek(gov_file, 0, SEEK_SET);
+//   size_t data_written = fread(jt->_dvfsPrevGovernor, 1, sizeof(jt->_dvfsPrevGovernor), gov_file);
   
-  if (data_written == 0) {
+//   if (data_written == 0) {
+//       printf("Failed to read governor, error: %s\n", strerror(errno));
+//       return -1;
+//   }
+//   jt->_dvfsPrevGovernor[data_written - 1] = '\0';
+//   return 0;
+// }
+
+//try with fscanf
+int os::save_prev_cpu_gov(FILE* gov_file, JavaThread* jt) {
+  if (fseek(gov_file, 0, SEEK_SET) != 0) {
+      printf("fseek failed: %s\n", strerror(errno));
+      return -1;
+  }
+  int rc = fscanf(gov_file, "%s", jt->_dvfsPrevGovernor);
+  if (rc != 1) {
       printf("Failed to read governor, error: %s\n", strerror(errno));
       return -1;
   }
-  jt->_dvfsPrevGovernor[data_written - 1] = '\0';
-  return 0;
+  
+  // Return the length of the governor string.
+  return strlen(jt->_dvfsPrevGovernor);
 }
+
 
 int os::dvfs_count=0;
 
