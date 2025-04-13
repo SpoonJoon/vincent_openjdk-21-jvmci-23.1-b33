@@ -99,7 +99,6 @@ class JavaThread: public Thread {
     int _dvfsSkipCount;
     int _dvfsSampleCount;
     int _dvfsPrevFreq;
-    char _dvfsPrevGovernor[32];
     
     
     // Constants - defined as static constexpr to allow compiler optimization
@@ -107,27 +106,7 @@ class JavaThread: public Thread {
     static constexpr int SAMPLES = 32;      // Samples per interval
 
   public:
-    // I feel like this should add dvfs calls to the method body
-    // inline bool should_sample_dvfs() {
-    //   _dvfsState._dvfsValid++;  // Always increment timer
-    //   if (_dvfsState._sampleCount == 0) {
-    //     return false;
-    //   }
-    //   if (_dvfsState._dvfsValid >= STRIDE) {
-    //     _dvfsState._skipCount--;
-    //     if (_dvfsState._skipCount == 0) {
-    //       _dvfsState._skipCount = STRIDE;
-    //       _dvfsState._sampleCount--;
-    //       if (_dvfsState._sampleCount == 0) {
-    //         _dvfsState._dvfsValid = 0;
-    //         _dvfsState._sampleCount = SAMPLES;
-    //         return true;
-    //       }
-    //       return true;
-    //     }
-    //   }
-    //   return false;
-    // }
+    char _dvfsPrevGovernor[32]; //keep this public for now.. tired of making getters and setters
    
     inline void enable_dvfs() { _dvfsValid = true; }
     inline void disable_dvfs() { _dvfsValid = false; }
