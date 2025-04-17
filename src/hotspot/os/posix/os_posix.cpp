@@ -1651,6 +1651,7 @@ int os::dvfs_count=0;
 
 //TODO: JOONHWAN rename, swap for int freq
 jlong os::scaleCpuFreq(jlong freq) {
+  dvfs_count++;
   // JavaThread *jt = JavaThread::current();
   
   // if (jt->dvfs_enabled()){  
@@ -1686,6 +1687,7 @@ jlong os::scaleCpuFreq(jlong freq) {
 
 //TODO rename, governor parametrization
 void os::restoreGovernor() {
+  dvfs_count++;
   // JavaThread *jt = JavaThread::current();
   
   // if (jt->dvfs_enabled()){  
