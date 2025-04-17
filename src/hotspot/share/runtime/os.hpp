@@ -262,11 +262,17 @@ class os: AllStatic {
   //Joonhwan
   static void init_sysfs_files();
   static void cleanup_sysfs_files();
+  static int set_cpu_governor(FILE* gov_file, const char* target, int core_id);
+  static int set_cpu_frequency(FILE* scale_file, int freq, int core_id);
   static jlong  dvfsTest();
   static jlong  scaleCpuFreq(jlong scale_freq);
+
   //TODO parametrize CPU to restore the correct governor
   static void  restoreGovernor();
   static int check_write_gov(int cores, char** gov_files, const char* target);
+  static int get_cpu_freq(FILE* cpu_file);
+  static int save_prev_cpu_gov(FILE* gov_file, JavaThread* jt);
+
   static int write_freq_all_cores(int cores, char** freq_files, 
                                 const char* cur_freq, const char* scal_freq, int freq);
   static int get_pos_intnum(int num);
@@ -551,7 +557,8 @@ class os: AllStatic {
     compiler_thread,
     watcher_thread,
     asynclog_thread,   // dedicated to flushing logs
-    os_thread
+    os_thread,
+    dvfs_thread  // JOONHWAN: Added for DVFS
   };
 
   static bool create_thread(Thread* thread,

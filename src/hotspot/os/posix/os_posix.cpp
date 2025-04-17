@@ -1502,7 +1502,7 @@ jlong os::dvfsTest() {
 
 pthread_mutex_t cpu_state_mutex;
 FILE** gov_files;
-FILE** gov_read_files;
+FILE** freq_read_files;
 FILE** freq_files;
 int num_cores;
 bool* cpu_in_userspace;
@@ -1514,7 +1514,7 @@ void os::init_sysfs_files() {
     pthread_mutex_init(&cpu_state_mutex, NULL);
     num_cores = get_nprocs();  // get the number of cores dynamically
     gov_files = (FILE**)os::malloc(num_cores * sizeof(FILE*), mtInternal);
-    gov_read_files = (FILE**)os::malloc(num_cores * sizeof(FILE*), mtInternal);
+    freq_read_files = (FILE**)os::malloc(num_cores * sizeof(FILE*), mtInternal);
     freq_files = (FILE**)os::malloc(num_cores * sizeof(FILE*), mtInternal);
     cpu_in_userspace = (bool*)os::malloc(num_cores * sizeof(bool), mtInternal);
     
@@ -1523,14 +1523,14 @@ void os::init_sysfs_files() {
         char filename[128];
 
         sprintf(filename, "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_governor", i);
-        gov_files[i] = fopen(filename, "w");
+        gov_files[i] = fopen(filename, "r+");
         if (!gov_files[i]) {
             perror("failed to open governor file");
         }
 
-        sprintf(filename, "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_governor", i);
-        gov_read_files[i] = fopen(filename, "r");
-        if (!gov_read_files[i]) {
+        sprintf(filename, "/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_cur_freq", i);
+        freq_read_files[i] = fopen(filename, "r");
+        if (!freq_read_files[i]) {
             perror("failed to open governor read file");
         }
 
@@ -1559,7 +1559,7 @@ void os::cleanup_sysfs_files() {
     }
     free(gov_files);
     free(freq_files);
-    free(gov_read_files);
+    free(freq_read_files);
     free(cpu_in_userspace);
     pthread_mutex_destroy(&cpu_state_mutex);
 
@@ -1572,86 +1572,151 @@ void os::cleanup_sysfs_files() {
 #endif
 }
 
-int os::dvfs_count=0;
-
-jlong os::scaleCpuFreq(jlong freq) {
-#ifdef LINUX
-
-    int current_cpu = sched_getcpu();
+// Scales the cpu frequency of the core to the target frequency
+int os::set_cpu_governor(FILE* gov_file, const char* target, int core_id) {
+    size_t data_length;
+    size_t data_written;
     
-    //init above
-    FILE* gov_file = gov_files[current_cpu];
-    FILE* freq_file = freq_files[current_cpu];
-    if (!gov_file || !freq_file) {
-        perror("File not open");
-        return -1;
+    fseek(gov_file, 0, SEEK_SET);
+    data_length = strlen(target);
+    data_written = fwrite(target, 1, data_length, gov_file);
+
+    if (data_length != data_written) {
+        printf("Failed to write governor %s to core %d, error: %s\n", 
+               target, core_id, strerror(errno));
+        return 1;
     }
-
-    bool should_scale = false;
-    
-    pthread_mutex_lock(&cpu_state_mutex);
-    if (!cpu_in_userspace[current_cpu]) {
-        should_scale = true;
-        cpu_in_userspace[current_cpu] = true;
-    }
-    pthread_mutex_unlock(&cpu_state_mutex);
-    
-    if(should_scale){
-      // write userspace to set cpu freq
-      fseek(gov_file, 0, SEEK_SET);
-      fprintf(gov_file, "userspace");
-      fflush(gov_file);
-
-      fseek(freq_file, 0, SEEK_SET);
-      fprintf(freq_file, "%ld", freq);
-      fflush(freq_file);
-
-      dvfs_count++;
-      printf("JOONHWAN: [DVFS] Scaling Invocation Count: %d\n", dvfs_count);
-    }
-
-    // double elapsed_time = os::elapsedTime(); // Time since JVM startup in seconds
-    // printf("[DVFS] Time: %.6f sec, CPU: %d, Count: %d, Frequency: %ld kHz\n", 
-    //        elapsed_time, current_cpu, dvfs_count, freq);
-    return freq;  // Returning the new frequency (adjust as needed)
-#else
-    return -1;
-#endif
+    return 0;
 }
 
-//TODO parametrize for different governors
-void os::restoreGovernor() {
-#ifdef LINUX
+// Scales the cpu frequency of the core to the target frequency
+int os::set_cpu_frequency(FILE* scale_file, int freq, int core_id) {
+    size_t data_length;
+    size_t data_written;
+    
+    fseek(scale_file, 0, SEEK_SET);
+    data_length = get_pos_intnum(freq);
+    data_written = fprintf(scale_file, "%d", freq);
+
+    //simple sanity check
+    if (data_length != data_written) {
+        printf("Failed to write frequency %d to core %d, error: %s\n", 
+               freq, core_id, strerror(errno));
+        return 1;
+    }
+    return 0;
+}
+
+int os::get_cpu_freq(FILE* scale_file) {
+  int freq;
+  fseek(scale_file, 0, SEEK_SET);
+  if (fscanf(scale_file, "%d", &freq) != 1) {
+      printf("Failed to read frequency, error: %s\n", strerror(errno));
+      return -1;
+  }
+  return freq;
+}
+
+// gets the cpu governor of the core and updates the _dvfsPrevGovernor buffer in javaThread.hpp
+// int os::save_prev_cpu_gov(FILE* gov_file, JavaThread* jt) {
+//   fseek(gov_file, 0, SEEK_SET);
+//   size_t data_written = fread(jt->_dvfsPrevGovernor, 1, sizeof(jt->_dvfsPrevGovernor), gov_file);
+  
+//   if (data_written == 0) {
+//       printf("Failed to read governor, error: %s\n", strerror(errno));
+//       return -1;
+//   }
+//   jt->_dvfsPrevGovernor[data_written - 1] = '\0';
+//   return 0;
+// }
+
+//try with fscanf
+int os::save_prev_cpu_gov(FILE* gov_file, JavaThread* jt) {
+  if (fseek(gov_file, 0, SEEK_SET) != 0) {
+      printf("fseek failed: %s\n", strerror(errno));
+      return -1;
+  }
+  int rc = fscanf(gov_file, "%s", jt->_dvfsPrevGovernor);
+  if (rc != 1) {
+      printf("Failed to read governor, error: %s\n", strerror(errno));
+      return -1;
+  }
+  
+  // Return the length of the governor string.
+  return strlen(jt->_dvfsPrevGovernor);
+}
+
+
+int os::dvfs_count=0;
+
+//TODO: JOONHWAN rename, swap for int freq
+jlong os::scaleCpuFreq(jlong freq) {
+  JavaThread *jt = JavaThread::current();
+  
+  if (jt->dvfs_enabled()){  
+    jt->decrement_skip_count();
     int current_cpu = sched_getcpu();
-    if (current_cpu < 0) {
-        perror("Invalid CPU id");
-        return;
+
+    // counter based sampling
+    if (jt->get_dvfs_skip_count() == 0) {
+      jt->reset_skip_count();
+      jt->decrement_sample_count();
+
+      // delimited sampling limit reached for this interval
+      if (jt->get_dvfs_sample_count() == 0) {
+        jt->disable_dvfs();
+        jt->reset_sample_count();
+        jt->reset_prev_freq(); //sets _dvfsPrevFreq to 0
+        jt->reset_prev_governor(); //sets _dvfsPrevGovernor to nullptr
+        
+        set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu); //reset governor to ondemand
+        return 0;
+      } 
+    
+      jt->set_prev_freq(get_cpu_freq(freq_read_files[current_cpu]));
+      // save_prev_cpu_gov(gov_files[current_cpu], jt); APR 13 debugging failed fseek
+      //chage gov and scale
+      set_cpu_governor(gov_files[current_cpu], "userspace", current_cpu);
+      set_cpu_frequency(freq_files[current_cpu], freq, current_cpu);
+      return 0;
     }
+  }
+  return 0;
+}
 
-    pthread_mutex_lock(&cpu_state_mutex);
-    if (!cpu_in_userspace[current_cpu]) {
-        pthread_mutex_unlock(&cpu_state_mutex);
+//TODO rename, governor parametrization
+void os::restoreGovernor() {
+  JavaThread *jt = JavaThread::current();
+  
+  if (jt->dvfs_enabled()){  
+    jt->decrement_skip_count();
+
+    // counter based sampling
+    if (jt->get_dvfs_skip_count() == 0) {
+      jt->reset_skip_count();
+      jt->decrement_sample_count();
+
+      int current_cpu = sched_getcpu();
+      // delimited sampling limit reached for this interval
+      if (jt->get_dvfs_sample_count() == 0) {
+        jt->disable_dvfs();
+        jt->reset_sample_count();
+        jt->reset_prev_freq(); //sets _dvfsPrevFreq to 0
+        jt->reset_prev_governor(); //sets _dvfsPrevGovernor to null terminated string
+        //reset governor to ondemand
+        
+        set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu);
         return;
+      } 
+
+      if (strcmp(jt->_dvfsPrevGovernor, "userspace") == 0) { //if prev governor was userspace that means we are in another optimized method's body
+          set_cpu_governor(gov_files[current_cpu], "userspace", current_cpu);
+          set_cpu_frequency(freq_files[current_cpu], jt->get_dvfs_prev_freq(), current_cpu);
+      } else {
+          set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu);
+      }
     }
-    cpu_in_userspace[current_cpu] = false; // Move this inside the lock too
-    pthread_mutex_unlock(&cpu_state_mutex);
-
-    FILE* gov_file = gov_files[current_cpu];
-    if (!gov_file) {
-        perror("Governor file not open");
-        return;
-    }
-
-    fseek(gov_file, 0, SEEK_SET);
-    fprintf(gov_file, "ondemand");
-    fflush(gov_file);
-
-
-    // double elapsed_time = os::elapsedTime();
-    // printf("[DVFS] Time: %.6f sec, CPU: %d, Restored to ondemand\n", 
-    //        elapsed_time, current_cpu);
-
-#endif
+  }
 }
 
 // Time since start-up in seconds to a fine granularity.
