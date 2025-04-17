@@ -1717,6 +1717,7 @@ void os::restoreGovernor() {
       }
     }
   }
+  return;
 }
 
 // Time since start-up in seconds to a fine granularity.
