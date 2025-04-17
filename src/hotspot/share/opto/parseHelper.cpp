@@ -59,6 +59,30 @@ void GraphKit::make_dtrace_method_entry_exit(ciMethod* method, bool is_entry) {
                     thread, method_node);
 }
 
+//------------------------------JOONHWANmake_dvfs_method_entry_exit ----------------
+// DVFS -- adjust CPU frequency at entry or exit of a hot method
+void GraphKit::make_dvfs_method_entry_exit(ciMethod* method, bool is_entry) {
+  const TypeFunc *call_type    = OptoRuntime::dtrace_method_entry_exit_Type(); // Reuse same type
+  address         call_address = is_entry ? CAST_FROM_FN_PTR(address, SharedRuntime::dvfs_method_entry) :
+                                            CAST_FROM_FN_PTR(address, SharedRuntime::dvfs_method_exit);
+  const char     *call_name    = is_entry ? "dvfs_method_entry" : "dvfs_method_exit";
+
+  // Get base of thread-local storage area
+  Node* thread = _gvn.transform( new ThreadLocalNode() );
+
+  // Get method
+  const TypePtr* method_type = TypeMetadataPtr::make(method);
+  Node *method_node = _gvn.transform(ConNode::make(method_type));
+
+  kill_dead_locals();
+
+  // For some reason, this call reads only raw memory.
+  const TypePtr* raw_adr_type = TypeRawPtr::BOTTOM;
+  make_runtime_call(RC_LEAF | RC_NARROW_MEM,
+                    call_type, call_address,
+                    call_name, raw_adr_type,
+                    thread, method_node);
+}
 
 //=============================================================================
 //------------------------------do_checkcast-----------------------------------

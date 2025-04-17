@@ -1056,7 +1056,6 @@ int SharedRuntime::dtrace_object_alloc(JavaThread* thread, oopDesc* o, size_t si
 JRT_LEAF(int, SharedRuntime::dtrace_method_entry(
     JavaThread* current, Method* method))
   assert(current == JavaThread::current(), "pre-condition");
-
   assert(DTraceMethodProbes, "wrong call");
   Symbol* kname = method->klass_name();
   Symbol* name = method->name();
@@ -1066,6 +1065,18 @@ JRT_LEAF(int, SharedRuntime::dtrace_method_entry(
       (char *) kname->bytes(), kname->utf8_length(),
       (char *) name->bytes(), name->utf8_length(),
       (char *) sig->bytes(), sig->utf8_length());
+  return 0;
+JRT_END
+
+JRT_LEAF(int, SharedRuntime::dvfs_method_entry(
+    JavaThread* current, Method* method))
+  assert(current == JavaThread::current(), "pre-condition");
+  
+  // For highly optimized/hot methods, scale CPU frequency
+  if (method->has_compiled_code() && method->code()->is_nmethod()) {
+    // Call scaleCpuFreq(1024) - sample parameter for high frequency
+    os::scaleCpuFreq(1024);
+  }
   return 0;
 JRT_END
 
@@ -1081,6 +1092,18 @@ JRT_LEAF(int, SharedRuntime::dtrace_method_exit(
       (char *) kname->bytes(), kname->utf8_length(),
       (char *) name->bytes(), name->utf8_length(),
       (char *) sig->bytes(), sig->utf8_length());
+  return 0;
+JRT_END
+
+JRT_LEAF(int, SharedRuntime::dvfs_method_exit(
+    JavaThread* current, Method* method))
+  assert(current == JavaThread::current(), "pre-condition");
+  
+  // For highly optimized/hot methods, restore CPU governor
+  if (method->has_compiled_code() && method->code()->is_nmethod()) {
+    // Call restoreGovernor to reset CPU frequency
+    os::restoreGovernor();
+  }
   return 0;
 JRT_END
 

@@ -287,6 +287,10 @@ class SharedRuntime: AllStatic {
   static int dtrace_method_entry(JavaThread* thread, Method* m);
   static int dtrace_method_exit(JavaThread* thread, Method* m);
 
+  // JOONHWAN DVFS method entry/exit functions for CPU frequency control
+  static int dvfs_method_entry(JavaThread* thread, Method* m);
+  static int dvfs_method_exit(JavaThread* thread, Method* m);
+
   // Utility method for retrieving the Java thread id, returns 0 if the
   // thread is not a well formed Java thread.
   static jlong get_java_tid(JavaThread* thread);

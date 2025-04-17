@@ -1209,6 +1209,11 @@ void Parse::do_method_entry() {
   if (C->env()->dtrace_method_probes()) {
     make_dtrace_method_entry(method());
   }
+  
+  // JOONHWAN Add DVFS method entry call
+  if (method()->has_compiled_code() && method()->code()->is_nmethod()) {
+    make_dvfs_method_entry(method());
+  }
 
 #ifdef ASSERT
   // Narrow receiver type when it is too broad for the method being parsed.
@@ -2209,6 +2214,11 @@ void Parse::return_current(Node* value) {
   }
   if (C->env()->dtrace_method_probes()) {
     make_dtrace_method_exit(method());
+  }
+  
+  // JOONHWAN Add DVFS method exit call
+  if (method()->has_compiled_code() && method()->code()->is_nmethod()) {
+    make_dvfs_method_exit(method());
   }
   SafePointNode* exit_return = _exits.map();
   exit_return->in( TypeFunc::Control  )->add_req( control() );

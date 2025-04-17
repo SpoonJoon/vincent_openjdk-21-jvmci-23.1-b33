@@ -676,6 +676,15 @@ class GraphKit : public Phase {
   void make_dtrace_method_exit(ciMethod* method) {
     make_dtrace_method_entry_exit(method, false);
   }
+  
+  //---------------- JOONHWAN DVFS support --------------------
+  void make_dvfs_method_entry_exit(ciMethod* method, bool is_entry);
+  void make_dvfs_method_entry(ciMethod* method) {
+    make_dvfs_method_entry_exit(method, true);
+  }
+  void make_dvfs_method_exit(ciMethod* method) {
+    make_dvfs_method_entry_exit(method, false);
+  }
 
   //--------------- stub generation -------------------
  public:
