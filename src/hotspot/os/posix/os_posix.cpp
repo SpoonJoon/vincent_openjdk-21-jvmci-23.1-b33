@@ -1670,15 +1670,15 @@ jlong os::scaleCpuFreq(jlong freq) {
         jt->_dvfsPrevFreq=0; //sets _dvfsPrevFreq to 0
         jt->_dvfsPrevGovernor[0] = '\0'; //sets _dvfsPrevGovernor to null terminated string
         
-        // set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu); //reset governor to ondemand
+        set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu); //reset governor to ondemand
         return 0;
       } 
     
       jt->_dvfsPrevFreq = get_cpu_freq(freq_read_files[current_cpu]);
-      // save_prev_cpu_gov(gov_files[current_cpu], jt); APR 13 debugging failed fseek
+      save_prev_cpu_gov(gov_files[current_cpu], jt); //APR 13 debugging failed fseek
       //chage gov and scale
       dvfs_count++;
-      // set_cpu_governor(gov_files[current_cpu], "userspace", current_cpu);
+      set_cpu_governor(gov_files[current_cpu], "userspace", current_cpu);
       // set_cpu_frequency(freq_files[current_cpu], freq, current_cpu);
       return 0;
     }
@@ -1707,15 +1707,15 @@ void os::restoreGovernor() {
         jt->reset_prev_governor(); //sets _dvfsPrevGovernor to null terminated string
         //reset governor to ondemand
         
-        // set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu);
+        set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu);
         return;
       } 
       restore_count++;
       if (strcmp(jt->_dvfsPrevGovernor, "userspace") == 0) { //if prev governor was userspace that means we are in another optimized method's body
-          // set_cpu_governor(gov_files[current_cpu], "userspace", current_cpu);
+          set_cpu_governor(gov_files[current_cpu], "userspace", current_cpu);
           // set_cpu_frequency(freq_files[current_cpu], jt->get_dvfs_prev_freq(), current_cpu);
       } else {
-          // set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu);
+          set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu);
       }
     }
   }
