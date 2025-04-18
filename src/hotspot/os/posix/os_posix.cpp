@@ -1668,7 +1668,7 @@ jlong os::scaleCpuFreq(jlong freq) {
         jt->_dvfsValid = false;
         jt->_dvfsSampleCount = jt->SAMPLES;
         jt->_dvfsPrevFreq=0; //sets _dvfsPrevFreq to 0
-        jt->_dvfsPrevGovernor=[]; //sets _dvfsPrevGovernor to nullptr
+        jt->_dvfsPrevGovernor[0] = '\0'; //sets _dvfsPrevGovernor to null terminated string
         
         // set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu); //reset governor to ondemand
         return 0;
