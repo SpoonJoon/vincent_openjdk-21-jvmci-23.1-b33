@@ -1658,30 +1658,30 @@ jlong os::scaleCpuFreq(jlong freq) {
     jt->decrement_skip_count();
     int current_cpu = sched_getcpu();
 
-    // counter based sampling
-    if (jt->get_dvfs_skip_count() == 0) {
-      jt->reset_skip_count();
-      jt->decrement_sample_count();
+    // // counter based sampling
+    // if (jt->_dvfsSkipCount == 0) {
+    //   jt->_dvfsSkipCount = jt->STRIDE;
+    //   jt->_dvfsSampleCount--;
 
-      // delimited sampling limit reached for this interval
-      if (jt->get_dvfs_sample_count() == 0) {
-        jt->disable_dvfs();
-        jt->reset_sample_count();
-        jt->reset_prev_freq(); //sets _dvfsPrevFreq to 0
-        jt->reset_prev_governor(); //sets _dvfsPrevGovernor to nullptr
+    //   // delimited sampling limit reached for this interval
+    //   if (jt->_dvfsSampleCount == 0) {
+    //     jt->_dvfsValid = false;
+    //     jt->_dvfsSampleCount = jt->SAMPLES;
+    //     jt->_dvfsPrevFreq=0; //sets _dvfsPrevFreq to 0
+    //     jt->_dvfsPrevGovernor=[]; //sets _dvfsPrevGovernor to nullptr
         
-        set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu); //reset governor to ondemand
-        return 0;
-      } 
+    //     set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu); //reset governor to ondemand
+    //     return 0;
+    //   } 
     
-      jt->set_prev_freq(get_cpu_freq(freq_read_files[current_cpu]));
-      // save_prev_cpu_gov(gov_files[current_cpu], jt); APR 13 debugging failed fseek
-      //chage gov and scale
-      dvfs_count++;
-      set_cpu_governor(gov_files[current_cpu], "userspace", current_cpu);
-      set_cpu_frequency(freq_files[current_cpu], freq, current_cpu);
-      return 0;
-    }
+    //   jt->_dvfsPrevFreq = get_cpu_freq(freq_read_files[current_cpu]);
+    //   // save_prev_cpu_gov(gov_files[current_cpu], jt); APR 13 debugging failed fseek
+    //   //chage gov and scale
+    //   dvfs_count++;
+    //   set_cpu_governor(gov_files[current_cpu], "userspace", current_cpu);
+    //   set_cpu_frequency(freq_files[current_cpu], freq, current_cpu);
+    //   return 0;
+    // }
   }
   return 0;
 }
@@ -1700,24 +1700,24 @@ void os::restoreGovernor() {
 
       int current_cpu = sched_getcpu();
       // delimited sampling limit reached for this interval
-      if (jt->get_dvfs_sample_count() == 0) {
-        jt->disable_dvfs();
-        jt->reset_sample_count();
-        jt->reset_prev_freq(); //sets _dvfsPrevFreq to 0
-        jt->reset_prev_governor(); //sets _dvfsPrevGovernor to null terminated string
-        //reset governor to ondemand
+    //   if (jt->get_dvfs_sample_count() == 0) {
+    //     jt->disable_dvfs();
+    //     jt->reset_sample_count();
+    //     jt->reset_prev_freq(); //sets _dvfsPrevFreq to 0
+    //     jt->reset_prev_governor(); //sets _dvfsPrevGovernor to null terminated string
+    //     //reset governor to ondemand
         
-        set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu);
-        return;
-      } 
-      restore_count++;
-      if (strcmp(jt->_dvfsPrevGovernor, "userspace") == 0) { //if prev governor was userspace that means we are in another optimized method's body
-          set_cpu_governor(gov_files[current_cpu], "userspace", current_cpu);
-          set_cpu_frequency(freq_files[current_cpu], jt->get_dvfs_prev_freq(), current_cpu);
-      } else {
-          set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu);
-      }
-    }
+    //     set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu);
+    //     return;
+    //   } 
+    //   restore_count++;
+    //   if (strcmp(jt->_dvfsPrevGovernor, "userspace") == 0) { //if prev governor was userspace that means we are in another optimized method's body
+    //       set_cpu_governor(gov_files[current_cpu], "userspace", current_cpu);
+    //       set_cpu_frequency(freq_files[current_cpu], jt->get_dvfs_prev_freq(), current_cpu);
+    //   } else {
+    //       set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu);
+    //   }
+    // }
   }
   return;
 }

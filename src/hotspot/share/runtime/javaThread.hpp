@@ -95,17 +95,26 @@ class JavaThread: public Thread {
     // } _dvfsState;
 
 
+    // bool _dvfsValid;  
+    // int _dvfsSkipCount;
+    // int _dvfsSampleCount;
+    // int _dvfsPrevFreq;
+    
+    
+    // // Constants - defined as static constexpr to allow compiler optimization
+    // static constexpr int STRIDE = 7;        // Base skip count
+    // static constexpr int SAMPLES = 32;      // Samples per interval
+
+  public:
     bool _dvfsValid;  
     int _dvfsSkipCount;
     int _dvfsSampleCount;
     int _dvfsPrevFreq;
-    
-    
+
+
     // Constants - defined as static constexpr to allow compiler optimization
     static constexpr int STRIDE = 7;        // Base skip count
     static constexpr int SAMPLES = 32;      // Samples per interval
-
-  public:
     char _dvfsPrevGovernor[32]; //keep this public for now.. tired of making getters and setters
    
     inline void enable_dvfs() { _dvfsValid = true; }
