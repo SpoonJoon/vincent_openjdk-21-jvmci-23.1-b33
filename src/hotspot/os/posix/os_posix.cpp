@@ -1717,7 +1717,7 @@ void os::restoreGovernor() {
     //   } else {
     //       set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu);
     //   }
-    // }
+    }
   }
   return;
 }
