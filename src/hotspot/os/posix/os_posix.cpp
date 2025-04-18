@@ -1563,11 +1563,11 @@ void os::cleanup_sysfs_files() {
     free(cpu_in_userspace);
     pthread_mutex_destroy(&cpu_state_mutex);
 
-    // FILE* debug_log = fopen("/workspace/graal_vincent/compiler/jvm_dvfs.log", "a");
-    // if (debug_log) {
-    //     fprintf(debug_log, "JOONHWAN: [DVFS] Scaling Invocation Count: %d\n", dvfs_count);
-    //     fclose(debug_log);
-    // }
+    FILE* debug_log = fopen("/workspace/graal_vincent/compiler/jvm_dvfs.log", "a");
+    if (debug_log) {
+        fprintf(debug_log, "JOONHWAN: [DVFS] Scaling Count: %d, restore count: %d\n", dvfs_count, restore_count);
+        fclose(debug_log);
+    }
     // printf("JOONHWAN: dvfs and scaling sysfs files DEALLOCATED\n");
 #endif
 }
@@ -1648,6 +1648,7 @@ int os::save_prev_cpu_gov(FILE* gov_file, JavaThread* jt) {
 
 
 int os::dvfs_count=0;
+int os::restore_count=0;
 
 //TODO: JOONHWAN rename, swap for int freq
 jlong os::scaleCpuFreq(jlong freq) {
@@ -1676,6 +1677,7 @@ jlong os::scaleCpuFreq(jlong freq) {
       jt->set_prev_freq(get_cpu_freq(freq_read_files[current_cpu]));
       // save_prev_cpu_gov(gov_files[current_cpu], jt); APR 13 debugging failed fseek
       //chage gov and scale
+      dvfs_count++;
       set_cpu_governor(gov_files[current_cpu], "userspace", current_cpu);
       set_cpu_frequency(freq_files[current_cpu], freq, current_cpu);
       return 0;
@@ -1708,7 +1710,7 @@ void os::restoreGovernor() {
         set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu);
         return;
       } 
-
+      restore_count++;
       if (strcmp(jt->_dvfsPrevGovernor, "userspace") == 0) { //if prev governor was userspace that means we are in another optimized method's body
           set_cpu_governor(gov_files[current_cpu], "userspace", current_cpu);
           set_cpu_frequency(freq_files[current_cpu], jt->get_dvfs_prev_freq(), current_cpu);

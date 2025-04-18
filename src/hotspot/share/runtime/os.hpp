@@ -278,6 +278,7 @@ class os: AllStatic {
   static int get_pos_intnum(int num);
 
   static int dvfs_count;
+  static int restore_count;
 
   // Returns the elapsed time in seconds since the vm started.
   static double elapsedTime();
