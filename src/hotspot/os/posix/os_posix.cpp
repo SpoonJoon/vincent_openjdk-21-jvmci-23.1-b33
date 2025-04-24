@@ -1677,19 +1677,19 @@ jlong os::scaleCpuFreq(jlong freq) {
         jt->_dvfsPrevFreq = 0;
         jt->_dvfsPrevGovernor[0] = '\0';
         
-        //set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu);
-        fwrite("ondemand", 1, 8, gov_files[current_cpu]);
+        size_t written = fwrite("ondemand", 1, 8, gov_files[current_cpu]);
+
         fflush(gov_files[current_cpu]);
         return 0;
       } 
       
       // Inlined get_cpu_freq
       fseek(freq_read_files[current_cpu], 0, SEEK_SET);
-      fscanf(freq_read_files[current_cpu], "%d", &jt->_dvfsPrevFreq);
+      size_t freq_result = fscanf(freq_read_files[current_cpu], "%d", &jt->_dvfsPrevFreq);
       
       // Inlined save_prev_cpu_gov
       fseek(gov_files[current_cpu], 0, SEEK_SET);
-      fscanf(gov_files[current_cpu], "%31s", jt->_dvfsPrevGovernor);
+      size_t gov_result = fscanf(gov_files[current_cpu], "%31s", jt->_dvfsPrevGovernor);
       jt->_dvfsPrevGovernor[31] = '\0'; // Ensure null-termination
       
       //set_cpu_governor(gov_files[current_cpu], "userspace", current_cpu);
