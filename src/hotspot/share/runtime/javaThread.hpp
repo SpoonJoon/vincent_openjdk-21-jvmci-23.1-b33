@@ -114,7 +114,7 @@ class JavaThread: public Thread {
 
     // Constants - defined as static constexpr to allow compiler optimization
     static constexpr int STRIDE = 7;        // Base skip count
-    static constexpr int SAMPLES = 32;      // Samples per interval
+    static constexpr int SAMPLES = 16;      // Samples per interval
     char _dvfsPrevGovernor[32]; //keep this public for now.. tired of making getters and setters
    
     inline void enable_dvfs() { _dvfsValid = true; }

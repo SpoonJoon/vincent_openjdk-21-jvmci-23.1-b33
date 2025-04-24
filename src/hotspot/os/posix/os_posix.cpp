@@ -1575,7 +1575,7 @@ void os::cleanup_sysfs_files() {
 // Scales the cpu frequency of the core to the target frequency
 int os::set_cpu_governor(FILE* gov_file, const char* target, int core_id) {
 
-    fseek(gov_file, 0, SEEK_SET);
+    // fseek(gov_file, 0, SEEK_SET);
     
     size_t data_length = strlen(target);
     size_t data_written = fwrite(target, 1, data_length, gov_file);
@@ -1593,7 +1593,7 @@ int os::set_cpu_governor(FILE* gov_file, const char* target, int core_id) {
 // Scales the cpu frequency of the core to the target frequency
 int os::set_cpu_frequency(FILE* scale_file, int freq, int core_id) {
   
-    fseek(scale_file, 0, SEEK_SET);
+    // fseek(scale_file, 0, SEEK_SET);
     int data_length = get_pos_intnum(freq);
     int data_written = fprintf(scale_file, "%d", freq);
 
