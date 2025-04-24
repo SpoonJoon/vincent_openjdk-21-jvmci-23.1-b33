@@ -1682,14 +1682,17 @@ jlong os::scaleCpuFreq(jlong freq) {
         fflush(gov_files[current_cpu]);
         return 0;
       } 
-    
-      // Get current frequency - keep this as a function call since it's only once per sampling
-      jt->_dvfsPrevFreq = get_cpu_freq(freq_read_files[current_cpu]);
       
-      // Get current governor - keep as function since it's only once per sampling
-      save_prev_cpu_gov(gov_files[current_cpu], jt);
+      // Inlined get_cpu_freq
+      fseek(freq_read_files[current_cpu], 0, SEEK_SET);
+      fscanf(freq_read_files[current_cpu], "%d", &jt->_dvfsPrevFreq);
       
-      // set_cpu_governor(gov_files[current_cpu], "userspace", current_cpu);
+      // Inlined save_prev_cpu_gov
+      fseek(gov_files[current_cpu], 0, SEEK_SET);
+      fscanf(gov_files[current_cpu], "%31s", jt->_dvfsPrevGovernor);
+      jt->_dvfsPrevGovernor[31] = '\0'; // Ensure null-termination
+      
+      //set_cpu_governor(gov_files[current_cpu], "userspace", current_cpu);
       //set_cpu_frequency(freq_files[current_cpu], freq, current_cpu);
       dvfs_count++;
       
@@ -1725,25 +1728,26 @@ void os::restoreGovernor() {
         jt->reset_prev_freq();
         jt->reset_prev_governor();
         
-        // set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu);
+        // Write ondemand directly, no need for function call
         fwrite("ondemand", 1, 8, gov_files[current_cpu]);
         fflush(gov_files[current_cpu]);
         return;
       } 
       
       restore_count++;
+      
+      // Check if previous governor was userspace
       if (strcmp(jt->_dvfsPrevGovernor, "userspace") == 0) {
-        int prev_freq = jt->get_dvfs_prev_freq();
-        fprintf(freq_files[current_cpu], "%d", prev_freq);
+        // Just set the frequency without changing governor
+        fprintf(freq_files[current_cpu], "%d", jt->get_dvfs_prev_freq());
         fflush(freq_files[current_cpu]);
       } else {
-        //  set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu);
-        fwrite(jt->_dvfsPrevGovernor, 1, strlen(jt->_dvfsPrevGovernor), gov_files[current_cpu]);
+        // Set back to ondemand
+        fwrite("ondemand", 1, 8, gov_files[current_cpu]);
         fflush(gov_files[current_cpu]);
       }
     }
   }
-  return;
 }
 
 // Time since start-up in seconds to a fine granularity.
