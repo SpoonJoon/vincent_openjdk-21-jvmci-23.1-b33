@@ -1594,8 +1594,8 @@ int os::set_cpu_governor(FILE* gov_file, const char* target, int core_id) {
 int os::set_cpu_frequency(FILE* scale_file, int freq, int core_id) {
   
     fseek(scale_file, 0, SEEK_SET);
-    data_length = get_pos_intnum(freq);
-    data_written = fprintf(scale_file, "%d", freq);
+    int data_length = get_pos_intnum(freq);
+    int data_written = fprintf(scale_file, "%d", freq);
 
     if (data_length != data_written) {
         printf("Failed to write frequency %d to core %d, error: %s\n", 
