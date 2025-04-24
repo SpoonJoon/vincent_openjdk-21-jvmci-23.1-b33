@@ -1596,6 +1596,7 @@ int os::set_cpu_frequency(FILE* scale_file, int freq, int core_id) {
     // fseek(scale_file, 0, SEEK_SET);
     int data_length = get_pos_intnum(freq);
     int data_written = fprintf(scale_file, "%d", freq);
+    fflush(scale_file);  // Add this
 
     if (data_length != data_written) {
         printf("Failed to write frequency %d to core %d, error: %s\n", 
@@ -1627,7 +1628,7 @@ int os::get_cpu_freq(FILE* scale_file) {
   return freq;
 }
 
-
+  
 //try with fscanf
 int os::save_prev_cpu_gov(FILE* gov_file, JavaThread* jt) {
   if (fseek(gov_file, 0, SEEK_SET) != 0) {
@@ -1681,7 +1682,7 @@ jlong os::scaleCpuFreq(jlong freq) {
       } 
     
       jt->_dvfsPrevFreq = get_cpu_freq(freq_read_files[current_cpu]);
-      // save_prev_cpu_gov(gov_files[current_cpu], jt); //APR 13 debugging failed fseek
+      save_prev_cpu_gov(gov_files[current_cpu], jt); //APR 13 debugging failed fseek
       //chage gov and scale
       dvfs_count++;
       set_cpu_governor(gov_files[current_cpu], "userspace", current_cpu);
