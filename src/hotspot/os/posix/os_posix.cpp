@@ -1647,7 +1647,6 @@ int os::save_prev_cpu_gov(FILE* gov_file, JavaThread* jt) {
       return -1;
   }
   
-  // Ensure null termination for safety
   jt->_dvfsPrevGovernor[31] = '\0';
   
   return strlen(jt->_dvfsPrevGovernor);
@@ -1682,11 +1681,11 @@ jlong os::scaleCpuFreq(jlong freq) {
       } 
     
       jt->_dvfsPrevFreq = get_cpu_freq(freq_read_files[current_cpu]);
-      save_prev_cpu_gov(gov_files[current_cpu], jt); //APR 13 debugging failed fseek
+      // save_prev_cpu_gov(gov_files[current_cpu], jt); //APR 13 debugging failed fseek
       //chage gov and scale
       dvfs_count++;
       set_cpu_governor(gov_files[current_cpu], "userspace", current_cpu);
-      // set_cpu_frequency(freq_files[current_cpu], freq, current_cpu);
+      set_cpu_frequency(freq_files[current_cpu], freq, current_cpu);
       return 0;
     }
   }
@@ -1720,7 +1719,7 @@ void os::restoreGovernor() {
       restore_count++;
       if (strcmp(jt->_dvfsPrevGovernor, "userspace") == 0) { //if prev governor was userspace that means we are in another optimized method's body
           set_cpu_governor(gov_files[current_cpu], "userspace", current_cpu);
-          // set_cpu_frequency(freq_files[current_cpu], jt->get_dvfs_prev_freq(), current_cpu);
+          set_cpu_frequency(freq_files[current_cpu], jt->get_dvfs_prev_freq(), current_cpu);
       } else {
           set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu);
       }
