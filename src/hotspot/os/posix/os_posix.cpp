@@ -1719,7 +1719,8 @@ void os::restoreGovernor() {
       } 
       restore_count++;
       if (strcmp(jt->_dvfsPrevGovernor, "userspace") == 0) { //if prev governor was userspace that means we are in another optimized method's body
-          set_cpu_governor(gov_files[current_cpu], "userspace", current_cpu);
+          printf("JOONHWAN: [DVFS] Restoring frequency to %d\n", jt->get_dvfs_prev_freq());
+          // set_cpu_governor(gov_files[current_cpu], "userspace", current_cpu);
           set_cpu_frequency(freq_files[current_cpu], jt->get_dvfs_prev_freq(), current_cpu);
       } else {
           set_cpu_governor(gov_files[current_cpu], "ondemand", current_cpu);

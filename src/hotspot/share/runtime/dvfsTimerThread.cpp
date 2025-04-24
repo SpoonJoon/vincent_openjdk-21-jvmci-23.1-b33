@@ -7,7 +7,7 @@
 
 DVFSThread* DVFSThread::_instance = nullptr;
 bool DVFSThread::_should_terminate = false;
-int DVFSThread::_interval_ms = 8;
+int DVFSThread::_interval_ms = 4;
 static bool _in_build_phase = false;
 
 void DVFSThread::start() {
