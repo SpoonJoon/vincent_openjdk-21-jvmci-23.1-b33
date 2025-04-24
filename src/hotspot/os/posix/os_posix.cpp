@@ -1574,12 +1574,13 @@ void os::cleanup_sysfs_files() {
 
 // Scales the cpu frequency of the core to the target frequency
 int os::set_cpu_governor(FILE* gov_file, const char* target, int core_id) {
-    size_t data_length;
-    size_t data_written;
-    
+
     fseek(gov_file, 0, SEEK_SET);
-    data_length = strlen(target);
-    data_written = fwrite(target, 1, data_length, gov_file);
+    
+    size_t data_length = strlen(target);
+    size_t data_written = fwrite(target, 1, data_length, gov_file);
+    
+    fflush(gov_file);
 
     if (data_length != data_written) {
         printf("Failed to write governor %s to core %d, error: %s\n", 
@@ -1591,14 +1592,11 @@ int os::set_cpu_governor(FILE* gov_file, const char* target, int core_id) {
 
 // Scales the cpu frequency of the core to the target frequency
 int os::set_cpu_frequency(FILE* scale_file, int freq, int core_id) {
-    size_t data_length;
-    size_t data_written;
-    
+  
     fseek(scale_file, 0, SEEK_SET);
     data_length = get_pos_intnum(freq);
     data_written = fprintf(scale_file, "%d", freq);
 
-    //simple sanity check
     if (data_length != data_written) {
         printf("Failed to write frequency %d to core %d, error: %s\n", 
                freq, core_id, strerror(errno));
@@ -1608,27 +1606,27 @@ int os::set_cpu_frequency(FILE* scale_file, int freq, int core_id) {
 }
 
 int os::get_cpu_freq(FILE* scale_file) {
-  int freq;
-  fseek(scale_file, 0, SEEK_SET);
-  if (fscanf(scale_file, "%d", &freq) != 1) {
-      printf("Failed to read frequency, error: %s\n", strerror(errno));
+  int freq = -1;
+  
+  if (fseek(scale_file, 0, SEEK_SET) != 0) {
+      printf("fseek failed in get_cpu_freq: %s\n", strerror(errno));
       return -1;
   }
+  
+  if (fscanf(scale_file, "%d", &freq) != 1) {
+      if (ferror(scale_file)) {
+          printf("Failed to read frequency, error: %s\n", strerror(errno));
+      } else if (feof(scale_file)) {
+          printf("Failed to read frequency: unexpected EOF\n");
+      } else {
+          printf("Failed to read frequency: format error\n");
+      }
+      return -1;
+  }
+  
   return freq;
 }
 
-// gets the cpu governor of the core and updates the _dvfsPrevGovernor buffer in javaThread.hpp
-// int os::save_prev_cpu_gov(FILE* gov_file, JavaThread* jt) {
-//   fseek(gov_file, 0, SEEK_SET);
-//   size_t data_written = fread(jt->_dvfsPrevGovernor, 1, sizeof(jt->_dvfsPrevGovernor), gov_file);
-  
-//   if (data_written == 0) {
-//       printf("Failed to read governor, error: %s\n", strerror(errno));
-//       return -1;
-//   }
-//   jt->_dvfsPrevGovernor[data_written - 1] = '\0';
-//   return 0;
-// }
 
 //try with fscanf
 int os::save_prev_cpu_gov(FILE* gov_file, JavaThread* jt) {
@@ -1636,13 +1634,22 @@ int os::save_prev_cpu_gov(FILE* gov_file, JavaThread* jt) {
       printf("fseek failed: %s\n", strerror(errno));
       return -1;
   }
-  int rc = fscanf(gov_file, "%s", jt->_dvfsPrevGovernor);
-  if (rc != 1) {
-      printf("Failed to read governor, error: %s\n", strerror(errno));
+  
+  if (fscanf(gov_file, "%31s", jt->_dvfsPrevGovernor) != 1) {
+      if (ferror(gov_file)) {
+          printf("Failed to read governor, error: %s\n", strerror(errno));
+      } else if (feof(gov_file)) {
+          printf("Failed to read governor: unexpected EOF\n");
+      } else {
+          printf("Failed to read governor: format error\n");
+      }
+      jt->_dvfsPrevGovernor[0] = '\0'; 
       return -1;
   }
   
-  // Return the length of the governor string.
+  // Ensure null termination for safety
+  jt->_dvfsPrevGovernor[31] = '\0';
+  
   return strlen(jt->_dvfsPrevGovernor);
 }
 
