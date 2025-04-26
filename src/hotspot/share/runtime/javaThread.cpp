@@ -402,14 +402,12 @@ JavaThread::JavaThread() :
   // Initialize fields
 
 
-  //JOONHWAN DVFS INIT
-  // _dvfsState{0, STRIDE, SAMPLES, 0}, 
-  _dvfsValid(false),  
-  _dvfsSkipCount(STRIDE),
-  _dvfsSampleCount(SAMPLES),
-  _dvfsPrevFreq(0),
-  _dvfsPrevGovernor{'\0'},
-
+  //JOONHWAN
+  _dvfsEnabled(false),          
+  _dvfsSkipCount(STRIDE),       
+  _dvfsSampleCount(SAMPLES),   
+  _dvfsPrevFreq(0),             
+  _dvfsPrevGov(GOV_ONDEMAND)   
 
   _on_thread_list(false),
   DEBUG_ONLY(_java_call_counter(0) COMMA)
