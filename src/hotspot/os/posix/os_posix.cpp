@@ -1454,7 +1454,7 @@ static inline void write_governor(int cpu, GovernorState target_state) {
     size_t      n = (target_state == GOV_USERSPACE) ? 9 : 8;
     ssize_t res = pwrite(gov_fd[cpu], s, n, 0);
     if (res < 0 || (size_t)res != n) {
-      printf("Governor write ERROR: CPU %d governor write failed. error: %s\n", cpu, strerror(errno));
+      printf("Governor write ERROR: CPU %d governor write failed. error code: %d\n", cpu, errno);
     }
     gov_cur[cpu] = target_state;
   }
@@ -1465,8 +1465,7 @@ static inline void write_freq(int cpu, int f) {
     char buf[16]; int n = joon_itoa(buf, f);
     ssize_t res = pwrite(freq_fd[cpu], buf, n, 0);
     if (res < 0 || res != n) {
-      printf("Scaling ERROR: CPU %d dvfs failed. error: %s\n", cpu, strerror(errno));
-    }
+      printf("Scaling ERROR: CPU %d dvfs failed. error code: %d\n", cpu, errno);
     last_freq[cpu] = f;
   }
 }
