@@ -1441,7 +1441,7 @@ int os::dvfs_count    = 0;
 int os::restore_count = 0;
 
 // helper functions 
-static inline int fast_itoa(char* dst, int v) {
+static inline int joon_itoa(char* dst, int v) {
   char tmp[12]; int i = 0;
   do { tmp[i++] = char('0' + v % 10); v /= 10; } while (v);
   int len = i; while (i--) *dst++ = tmp[i];
@@ -1452,15 +1452,21 @@ static inline void write_governor(int cpu, GovernorState target_state) {
   if (gov_cur[cpu] != target_state) {
     const char* s = (target_state == GOV_USERSPACE) ? "userspace" : "ondemand";
     size_t      n = (target_state == GOV_USERSPACE) ? 9 : 8;
-    pwrite(gov_fd[cpu], s, n, 0);
+    ssize_t res = pwrite(gov_fd[cpu], s, n, 0);
+    if (res < 0 || (size_t)res != n) {
+      printf("Governor write ERROR: CPU %d governor write failed. error: %s\n", cpu, strerror(errno));
+    }
     gov_cur[cpu] = target_state;
   }
 }
 
 static inline void write_freq(int cpu, int f) {
   if (f != last_freq[cpu]) {
-    char buf[16]; int n = fast_itoa(buf, f);
-    pwrite(freq_fd[cpu], buf, n, 0);
+    char buf[16]; int n = joon_itoa(buf, f);
+    ssize_t res = pwrite(freq_fd[cpu], buf, n, 0);
+    if (res < 0 || res != n) {
+      printf("Scaling ERROR: CPU %d dvfs failed. error: %s\n", cpu, strerror(errno));
+    }
     last_freq[cpu] = f;
   }
 }
@@ -1480,7 +1486,7 @@ void os::init_sysfs_files() {
     char path[96];
 
     sprintf(path, "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_governor", c);
-    gov_fd[c] = open(path, O_RDWR | O_CLOEXEC);
+    gov_fd[c] = ::open(path, O_RDWR | O_CLOEXEC, 0);
 
     char buf[16] = {0};
     if (pread(gov_fd[c], buf, sizeof buf - 1, 0) >= 0 && !memcmp(buf, "userspace", 9))
@@ -1489,7 +1495,7 @@ void os::init_sysfs_files() {
       gov_cur[c] = GOV_ONDEMAND;
 
     sprintf(path, "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_setspeed", c);
-    freq_fd[c] = open(path, O_WRONLY | O_CLOEXEC);
+    freq_fd[c] = ::open(path, O_WRONLY | O_CLOEXEC, 0);
 
     last_freq[c] = -1;
   }
@@ -1514,13 +1520,13 @@ jlong os::scaleCpuFreq(jlong freq) {
     jt->decrement_skip_count();
     int cpu = sched_getcpu();
 
-    if (jt->_dvfsSkipCount == 0) {
-      jt->_dvfsSkipCount = jt->STRIDE;
-      jt->_dvfsSampleCount--;
+    if (jt->skip_count() == 0) {
+      jt->reset_skip_count();
+      jt->decrement_sample_count();
 
-      if (jt->_dvfsSampleCount == 0) { 
-        jt->_dvfsValid = false;
-        jt->_dvfsSampleCount = jt->SAMPLES;
+      if (jt->sample_count() == 0) { 
+        jt->disable_dvfs();
+        jt->reset_sample_count();
         write_governor(cpu, GOV_ONDEMAND);
         return 0;
       }
@@ -1548,13 +1554,13 @@ void os::restoreGovernor() {
   if (jt->dvfs_enabled()) {
     jt->decrement_skip_count();
 
-    if (jt->get_dvfs_skip_count() == 0) {
+    if (jt->skip_count() == 0) {
       jt->reset_skip_count();
       jt->decrement_sample_count();
 
       int cpu = sched_getcpu();
 
-      if (jt->get_dvfs_sample_count() == 0) {
+      if (jt->sample_count() == 0) {
         jt->disable_dvfs();
         jt->reset_sample_count();
         write_governor(cpu, GOV_ONDEMAND);
