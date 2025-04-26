@@ -96,6 +96,7 @@ class JavaThread: public Thread {
   public:
     static constexpr int STRIDE  = 9;
     static constexpr int SAMPLES = 16;
+    enum GovernorFlag : unsigned char { GOV_ONDEMAND = 0, GOV_USERSPACE = 1 };
 
     inline bool dvfs_enabled()        const { return _dvfsEnabled; }
     inline void enable_dvfs()               { _dvfsEnabled = true; }

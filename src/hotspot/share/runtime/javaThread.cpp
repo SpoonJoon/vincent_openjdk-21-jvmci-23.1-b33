@@ -403,11 +403,12 @@ JavaThread::JavaThread() :
 
 
   //JOONHWAN
-  _dvfsEnabled(false),          
+      
   _dvfsSkipCount(STRIDE),       
   _dvfsSampleCount(SAMPLES),   
   _dvfsPrevFreq(0),             
-  _dvfsPrevGov(GOV_ONDEMAND)   
+  _dvfsPrevGov(GOV_ONDEMAND),
+  _dvfsEnabled(false),       
 
   _on_thread_list(false),
   DEBUG_ONLY(_java_call_counter(0) COMMA)
