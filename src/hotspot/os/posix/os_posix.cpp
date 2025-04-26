@@ -1509,6 +1509,12 @@ void os::cleanup_sysfs_files() {
     if (freq_fd[c] >= 0) close(freq_fd[c]);
   }
   os::free(gov_fd);  os::free(freq_fd);  os::free(gov_cur);  os::free(last_freq);
+
+  FILE* debug_log = fopen("/workspace/graal_vincent/compiler/jvm_dvfs.log", "a");
+  if (debug_log) {
+      fprintf(debug_log, "JOONHWAN: [DVFS] Scaling Count: %d, restore count: %d\n", dvfs_count, restore_count);
+      fclose(debug_log);
+  }
 #endif
 }
 
