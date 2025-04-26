@@ -1466,6 +1466,7 @@ static inline void write_freq(int cpu, int f) {
     ssize_t res = pwrite(freq_fd[cpu], buf, n, 0);
     if (res < 0 || res != n) {
       printf("Scaling ERROR: CPU %d dvfs failed. error code: %d\n", cpu, errno);
+    }
     last_freq[cpu] = f;
   }
 }
