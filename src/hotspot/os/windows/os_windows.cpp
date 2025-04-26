@@ -1128,9 +1128,6 @@ int os::set_cpu_frequency(FILE* scale_file, int freq, int core_id) {
     return 0;
 }
 
-jlong os::dvfsTest() {
-    return 0;
-}
 
 jlong os::scaleCpuFreq(jlong freq) {
     return 0;

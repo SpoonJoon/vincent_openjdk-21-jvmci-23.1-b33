@@ -773,7 +773,6 @@
   declare_function(os::dll_lookup)                                        \
   declare_function(os::javaTimeMillis)                                    \
   declare_function(os::javaTimeNanos)                                     \
-  declare_function(os::dvfsTest)                                          \
   declare_function(os::scaleCpuFreq)                                      \
   declare_function(os::restoreGovernor)                                   \
   declare_function(os::init_sysfs_files)                                  \

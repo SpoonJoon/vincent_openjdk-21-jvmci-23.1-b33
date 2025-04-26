@@ -85,58 +85,39 @@ class JavaThread: public Thread {
   friend class Threads;
   friend class ServiceThread; // for deferred OopHandle release access
 
-  // JOONHWAN TODO: maybe re add method prof?
+/******************* JOOONHWAN *******************/
   private:
-    // struct DVFSState {
-    //   uint32_t _dvfsValid : 1;        // 8 bits for timer (0-255)
-    //   uint32_t _skipCount : 8;        // 8 bits for skip counter
-    //   uint32_t _sampleCount : 8;      // 8 bits for sample counter
-    //   uint32_t _prevFreq : 8;         // 8 bits for previous frequency
-    // } _dvfsState;
-
-
-    // bool _dvfsValid;  
-    // int _dvfsSkipCount;
-    // int _dvfsSampleCount;
-    // int _dvfsPrevFreq;
-    
-    
-    // // Constants - defined as static constexpr to allow compiler optimization
-    // static constexpr int STRIDE = 7;        // Base skip count
-    // static constexpr int SAMPLES = 32;      // Samples per interval
+    int      _dvfsSkipCount;     // decremented every hot method entry
+    int      _dvfsSampleCount;   // decremented once per burst
+    int      _dvfsPrevFreq;      // freq to restore
+    uint8_t  _dvfsPrevGov;       // 0 = ondemand, 1 = userspace TODO: JOOONHWAN support more governors maybe a jvm setting?
+    bool     _dvfsEnabled;       // 1 = DVFS active
 
   public:
-    bool _dvfsValid;  
-    int _dvfsSkipCount;
-    int _dvfsSampleCount;
-    int _dvfsPrevFreq;
+    static constexpr int STRIDE  = 9;
+    static constexpr int SAMPLES = 16;
 
+    inline bool dvfs_enabled()        const { return _dvfsEnabled; }
+    inline void enable_dvfs()               { _dvfsEnabled = true; }
+    inline void disable_dvfs()              { _dvfsEnabled = false; }
 
-    // Constants - defined as static constexpr to allow compiler optimization
-    static constexpr int STRIDE = 9;        // Base skip count
-    static constexpr int SAMPLES = 16;      // Samples per interval
-    char _dvfsPrevGovernor[32]; //keep this public for now.. tired of making getters and setters
-   
-    inline void enable_dvfs() { _dvfsValid = true; }
-    inline void disable_dvfs() { _dvfsValid = false; }
-    inline bool dvfs_enabled() { return _dvfsValid; }
+    inline void decrement_skip_count()      { --_dvfsSkipCount; }
+    inline void decrement_sample_count()    { --_dvfsSampleCount; }
 
-    inline void decrement_skip_count() { _dvfsSkipCount--; }
-    inline void decrement_sample_count() { _dvfsSampleCount--; }
+    inline void reset_skip_count()          { _dvfsSkipCount  = STRIDE;  }
+    inline void reset_sample_count()        { _dvfsSampleCount = SAMPLES;}
 
-    inline void set_prev_freq(int freq) { _dvfsPrevFreq = freq; }
-    // inline void set_prev_governor(char[] governor) { _dvfsPrevGovernor = governor; } removed see os::save_prev_cpu_gov 
-    
-    inline void reset_skip_count() { _dvfsSkipCount = STRIDE; }
-    inline void reset_sample_count() { _dvfsSampleCount = SAMPLES; }
-    inline void reset_prev_freq() { _dvfsPrevFreq = 0; }
-    inline void reset_prev_governor() { _dvfsPrevGovernor[0] = '\0'; }
+    inline int  skip_count()          const { return _dvfsSkipCount;  }
+    inline int  sample_count()        const { return _dvfsSampleCount;}
 
-    inline uint32_t get_dvfs_timer() const { return _dvfsValid; }
-    inline uint32_t get_dvfs_skip_count() const { return _dvfsSkipCount; }
-    inline uint32_t get_dvfs_sample_count() const { return _dvfsSampleCount; }
-    inline int get_dvfs_prev_freq() { return _dvfsPrevFreq; }
+    inline void   set_prev_freq(int f)      { _dvfsPrevFreq = f; }
+    inline int    prev_freq()         const { return _dvfsPrevFreq; }
+    inline void   reset_prev_freq()         { _dvfsPrevFreq = 0;   }
 
+    inline void   set_prev_gov_userspace()  { _dvfsPrevGov = 1; }
+    inline void   set_prev_gov_ondemand()   { _dvfsPrevGov = 0; }
+    inline bool   prev_gov_is_userspace()   const { return _dvfsPrevGov; }
+/******************* JOOONHWAN END *******************/
 
  private:
   bool           _on_thread_list;                // Is set when this JavaThread is added to the Threads list
