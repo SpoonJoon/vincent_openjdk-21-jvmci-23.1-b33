@@ -1504,17 +1504,19 @@ void os::init_sysfs_files() {
 
 void os::cleanup_sysfs_files() {
 #ifdef LINUX
-  for (int c = 0; c < num_cores; ++c) {
-    if (gov_fd[c]  >= 0) close(gov_fd[c]);
-    if (freq_fd[c] >= 0) close(freq_fd[c]);
-  }
-  os::free(gov_fd);  os::free(freq_fd);  os::free(gov_cur);  os::free(last_freq);
 
   FILE* debug_log = fopen("/workspace/graal_vincent/compiler/jvm_dvfs.log", "a");
   if (debug_log) {
       fprintf(debug_log, "JOONHWAN: [DVFS] Scaling Count: %d, restore count: %d\n", dvfs_count, restore_count);
       fclose(debug_log);
   }
+  for (int c = 0; c < num_cores; ++c) {
+    fprintf(debug_log, "JOONHWAN: [DVFS] CPU %d: last_freq: %d \n", c, last_freq[c]);
+
+    if (gov_fd[c]  >= 0) close(gov_fd[c]);
+    if (freq_fd[c] >= 0) close(freq_fd[c]);
+  }
+  os::free(gov_fd);  os::free(freq_fd);  os::free(gov_cur);  os::free(last_freq);
 #endif
 }
 
